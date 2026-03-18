@@ -17,9 +17,9 @@ describe("POST /register", () => {
     const res = await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "12345678",
-        email: "test@torontomu.ca"
+        name: "student",
+        studentID: "123456789",
+        email: "student@torontomu.ca"
       });
 
     expect(res.statusCode).toBe(201);
@@ -30,21 +30,57 @@ describe("POST /register", () => {
     const res = await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "12345678"
+        name: "student",
+        studentID: "123456789"
       });
 
     expect(res.statusCode).toBe(400);
   });
 
 // Invalid student ID
-  test("invalid student ID", async () => {
+  test("invalid student ID < 9 digits", async () => {
     const res = await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "1234",
-        email: "test@torontomu.ca"
+        name: "student",
+        studentID: "12345678",
+        email: "student@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid student ID > 9 digits", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "1234567890",
+        email: "student@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid student ID contains letters", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123A5B89C",
+        email: "student@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid student ID contains symbols", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "12$%56@89",
+        email: "student@torontomu.ca"
       });
 
     expect(res.statusCode).toBe(400);
@@ -55,8 +91,8 @@ describe("POST /register", () => {
     const res = await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "12345678",
+        name: "student",
+        studentID: "123456789",
         email: "test@gmail.com"
       });
 
@@ -68,20 +104,59 @@ describe("POST /register", () => {
     await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "12345678",
+        name: "student",
+        studentID: "123456789",
         email: "test@torontomu.ca"
       });
 
     const res = await request(app)
       .post("/register")
       .send({
-        name: "Eric",
-        studentID: "12345678",
+        name: "student",
+        studentID: "123456789",
         email: "test@torontomu.ca"
       });
 
     expect(res.statusCode).toBe(400);
   });
 
+  test("duplicate applicant ID", async () => {
+    await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123456789",
+        email: "student@torontomu.ca"
+      });
+
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123456789",
+        email: "test@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("duplicate applicant Email", async () => {
+    await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123456780",
+        email: "test@torontomu.ca"
+      });
+
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123456789",
+        email: "test@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
 });

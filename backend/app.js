@@ -3,7 +3,12 @@
 const express = require("express");
 const session = require("express-session");
 
+const requireAuth = require("/middleware/requireAuth");
+const requireCoordinator = require("/middleware/requireCoordinator");
+
 const db = require("./config/applicants");
+const registerRoutes = require("./routes/register");
+const authRoutes = require("./routes/login");
 
 const app = express();
 
@@ -18,51 +23,12 @@ app.use(
   })
 );
 
-// Routes for applicants for registration
-
-app.post("/register", (req, res) => {
-  const { name, studentID, email } = req.body;
-
-  if (!name || !studentID || !email) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  if (!/^\d{8}$/.test(studentID)) {
-    return res.status(400).json({ error: "Student ID must be 8 digits" });
-  }
-
-  if (!email.endsWith("@torontomu.ca")) {
-    return res.status(400).json({ error: "Email must end with @torontomu.ca" });
-  }
-
-  try {
-    const stmt = db.prepare(`
-      INSERT INTO applicants (name, studentID, email)
-      VALUES (?, ?, ?)
-    `);
-
-    stmt.run(name, studentID, email);
-
-    res.status(201).json({ message: "Applicant registered successfully" });
-
-  } catch (err) {
-    if (err.message.includes("UNIQUE constraint failed")) {
-      return res.status(400).json({ error: "Student ID or email already exists" });
-    }
-
-    res.status(500).json({ error: err.message });
-  }
+app.get('/dashboard', requireAuth, (req, res) => {
+  res.send("Protected route");
 });
 
-// Route to get all applicants (for testing purposes)
-
-app.get("/applicant", (req, res) => {
-  try {
-    const applicants = db.prepare('SELECT * FROM applicants').all();
-    res.json(applicants); // Sends the list as JSON
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch applicants' });
-  }
+app.get('/coordinator', requireAuth, requireCoordinator, (req, res) => {
+  res.send("Coordinator only");
 });
 
 // Basic health check route
@@ -70,6 +36,9 @@ app.get("/applicant", (req, res) => {
 app.get("/", (req, res) => {
   res.send("Co-op Support App Running");
 });
+
+app.use(registerRoutes);
+app.use(authRoutes);
 
 module.exports = app;
 
