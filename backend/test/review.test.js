@@ -73,7 +73,7 @@ describe("PATCH /applicants/:id/status", () => {
 
         const res = await request(app)
             .patch(`/applicants/${application.id}/status`)
-            .send({ provisional_status: "Approved" });
+            .send({ provisional_status: "Accepted" });
 
         expect(res.statusCode).toBe(401);
     });
@@ -91,7 +91,7 @@ describe("PATCH /applicants/:id/status", () => {
 
         const res = await agent
             .patch(`/applicants/${application.id}/status`)
-            .send({ provisional_status: "Approved" });
+            .send({ provisional_status: "Accepted" });
 
         expect(res.statusCode).toBe(403);
     });
@@ -109,12 +109,12 @@ describe("PATCH /applicants/:id/status", () => {
 
       const res = await agent
         .patch(`/applicants/${applicant.id}/status`)
-        .send({ provisional_status: "Approved" });
+        .send({ provisional_status: "Accepted" });
 
       expect(res.statusCode).toBe(200);
 
       const updatedApplicant = db.prepare("SELECT * FROM applicants WHERE id = ?").get(applicant.id);
-      expect(updatedApplicant.provisional_status).toBe("Approved");
+      expect(updatedApplicant.provisional_status).toBe("Accepted");
     });
 
     // Update applicant status to Rejected (authenticated as coordinator)

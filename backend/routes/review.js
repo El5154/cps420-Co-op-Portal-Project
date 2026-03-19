@@ -21,7 +21,7 @@ router.patch("/applicants/:id/status", requireAuth, requireCoordinator, (req, re
         return res.status(400).json({ error: "Status is required" });
     }
 
-    if (!["Approved", "Rejected"].includes(provisional_status)) {
+    if (!["Accepted", "Rejected"].includes(provisional_status)) {
         return res.status(400).json({ error: "Invalid status value" });
     }
 
