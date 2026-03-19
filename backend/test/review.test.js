@@ -10,11 +10,11 @@ beforeEach(() => {
   db.prepare(`
     INSERT INTO applicants (name, studentID, email, provisional_status)
     VALUES (?, ?, ?, ?)
-  `).run("Alice Smith", "123456789", "alice@torontomu.ca", "pending");
+  `).run("Alice Smith", "123456789", "alice@torontomu.ca", "Pending");
   db.prepare(`
     INSERT INTO applicants (name, studentID, email, provisional_status)
     VALUES (?, ?, ?, ?)
-  `).run("Sam Joseph", "123456780", "sam@torontomu.ca", "pending");
+  `).run("Sam Joseph", "123456780", "sam@torontomu.ca", "Pending");
 
   db.prepare(`
     INSERT INTO users (username, password, role)
