@@ -1,7 +1,9 @@
+// routes/register.js - Route for applicant registration
 const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
 
+// POST /register - Register a new applicant
 router.post("/register", (req, res) => {
   const { name, studentID, email } = req.body;
 

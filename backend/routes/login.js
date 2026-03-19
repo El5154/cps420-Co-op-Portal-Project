@@ -1,7 +1,9 @@
+// routes/login.js - Routes for user authentication (login/logout)
 const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
 
+// POST /login - Authenticate user and create session
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
 

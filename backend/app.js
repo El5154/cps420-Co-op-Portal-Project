@@ -2,13 +2,14 @@
 
 const express = require("express");
 const session = require("express-session");
-
-const requireAuth = require("/middleware/requireAuth");
-const requireCoordinator = require("/middleware/requireCoordinator");
-
 const db = require("./config/applicants");
+
+const requireAuth = require("./middleware/requireAuth");
+const requireCoordinator = require("./middleware/requireCoordinator");
+
 const registerRoutes = require("./routes/register");
 const authRoutes = require("./routes/login");
+const review = require("./routes/review");
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.get("/", (req, res) => {
 
 app.use(registerRoutes);
 app.use(authRoutes);
+app.use(review);
 
 module.exports = app;
 
