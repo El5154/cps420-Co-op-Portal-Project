@@ -1,6 +1,7 @@
 const tableBody = document.getElementById("applicantTableBody");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
+const BASE_URL = "https://your-app-name.onrender.com";
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -14,7 +15,7 @@ async function loadApplicants() {
   showMessage("", "");
 
   try {
-    const response = await fetch("http://localhost:3000/applicants", {
+    const response = await fetch(BASE_URL + "/applicants", {
       method: "GET",
       credentials: "include"
     });
@@ -102,7 +103,7 @@ async function updateStatus(applicantId) {
   }
 
   try {
-    const response = await fetch(`http://localhost:3000/applicants/${applicantId}/status`, {
+    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/status", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -126,7 +127,7 @@ async function updateStatus(applicantId) {
 
 async function finalizeDecision(applicantId) {
   try {
-    const response = await fetch(`http://localhost:3000/applicants/${applicantId}/finalize`, {
+    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/finalize", {
       method: "PATCH",
       credentials: "include"
     });
@@ -154,7 +155,7 @@ async function createAccount(applicantId) {
   }
 
   try {
-    const response = await fetch(`http://localhost:3000/applicants/${applicantId}/create-account`, {
+    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/create-account", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -184,7 +185,7 @@ async function createAccount(applicantId) {
 
 logoutBtn.addEventListener("click", async () => {
   try {
-    const response = await fetch("http://localhost:3000/logout", {
+    const response = await fetch(BASE_URL + "/logout", {
       method: "POST",
       credentials: "include"
     });

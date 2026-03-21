@@ -1,5 +1,6 @@
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
+const BASE_URL = "https://your-app-name.onrender.com";
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -17,7 +18,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const response = await fetch("http://localhost:3000/login", {
+    const response = await fetch(BASE_URL + "/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

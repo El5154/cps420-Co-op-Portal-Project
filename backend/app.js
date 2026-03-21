@@ -11,7 +11,7 @@ const app = express();
 
 app.use(express.json());
 app.use(session({
-  secret: "secret-key",
+  secret: process.env.SESSION_SECRET || "dev-secret",
   resave: false,
   saveUninitialized: false
 }));
@@ -20,6 +20,10 @@ app.use(registerRoutes);
 app.use(loginRoutes);
 app.use(coordinatorReviewRoutes);
 app.use(applicantReviewRoutes);
+
+app.get("/", (req, res) => {
+  res.status(200).send("Server is running");
+});
 
 app.get("/dashboard", requireAuth, (req, res) => {
   res.status(200).send("Protected route");

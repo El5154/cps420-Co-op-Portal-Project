@@ -4,6 +4,7 @@ const provisionalStatusSpan = document.getElementById("provisionalStatus");
 const finalStatusSpan = document.getElementById("finalStatus");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
+const BASE_URL = "https://your-app-name.onrender.com";
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -15,10 +16,11 @@ function showMessage(text, type) {
 }
 
 async function loadApplicantStatus() {
+  
   showMessage("", "");
 
   try {
-    const response = await fetch("http://localhost:3000/applicants/status", {
+    const response = await fetch(BASE_URL + "/applicants/status", {
       method: "GET",
       credentials: "include"
     });
@@ -40,7 +42,7 @@ async function loadApplicantStatus() {
 
 logoutBtn.addEventListener("click", async () => {
   try {
-    const response = await fetch("http://localhost:3000/logout", {
+    const response = await fetch(BASE_URL + "/logout", {
       method: "POST",
       credentials: "include"
     });

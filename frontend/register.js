@@ -1,5 +1,6 @@
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
+const BASE_URL = "https://your-app-name.onrender.com";
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -30,7 +31,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const response = await fetch("http://localhost:3000/register", {
+    const response = await fetch(BASE_URL + "/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
