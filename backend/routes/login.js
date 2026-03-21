@@ -35,7 +35,10 @@ router.post("/login", (req, res) => {
   }
 
   req.session.user = sessionUser;
-  return res.status(200).send("Login successful");
+  return res.status(200).json({
+    message: "Login successful",
+    role: user.role
+  });
 });
 
 router.post("/logout", (req, res) => {

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coordinator Dashboard</title>
+  <link rel="stylesheet" href="coordinator.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Coordinator Dashboard</h1>
+      <button id="logoutBtn">Logout</button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Student ID</th>
+          <th>Email</th>
+          <th>Provisional Status</th>
+          <th>Final Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="applicantTableBody"></tbody>
+    </table>
+  </div>
+
+  <script src="coordinator.js"></script>
+</body>
+</html>
