@@ -17,16 +17,19 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-session": "^1.19.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14",
     "jest": "^29.0.0",
+    "nodemon": "^3.1.14",
     "supertest": "^6.3.0"
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/test/**/*.test.js"]
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ]
   }
 }
