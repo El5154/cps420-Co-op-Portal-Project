@@ -1,10 +1,9 @@
-// routes/login.js - Routes for user authentication (login/logout)
+// routes/login.js
 const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
 
-// POST /login - Authenticate user and create session
-router.post('/login', (req, res) => {
+router.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -19,17 +18,30 @@ router.post('/login', (req, res) => {
     return res.status(401).send("Invalid credentials");
   }
 
-  req.session.user = {
+  const sessionUser = {
     id: user.id,
+    username: user.username,
     role: user.role
   };
 
-  res.send("Login successful");
+  if (user.role === "applicant") {
+    const applicant = db.prepare(
+      "SELECT studentID FROM applicants WHERE studentID = ?"
+    ).get(user.username);
+
+    if (applicant) {
+      sessionUser.studentID = applicant.studentID;
+    }
+  }
+
+  req.session.user = sessionUser;
+  return res.status(200).send("Login successful");
 });
 
-router.post('/logout', (req, res) => {
-  req.session.destroy();
-  res.send("Logged out");
+router.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.status(200).send("Logged out");
+  });
 });
 
 module.exports = router;

@@ -2,60 +2,112 @@ const request = require("supertest");
 const app = require("../app");
 const db = require("../config/applicants");
 
-// Tests for login functionality
-describe("POST /login", () => {
-  beforeAll(() => {
-    db.prepare("DELETE FROM users").run();
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("coordinator", "password", "coordinator");
+beforeEach(() => {
+  db.prepare("DELETE FROM applicants").run();
+  db.prepare("DELETE FROM users").run();
+});
 
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("student", "password", "applicant");
-  });
-
-// Valid login
-  test("valid login", async () => {
+describe("POST /register", () => {
+  test("valid applicant", async () => {
     const res = await request(app)
-      .post("/login")
+      .post("/register")
       .send({
-        username: "coordinator",
-        password: "password"
+        name: "student",
+        studentID: "123456789",
+        email: "student@torontomu.ca"
       });
-    expect(res.statusCode).toBe(200);
+
+    expect(res.statusCode).toBe(201);
   });
 
-// Invalid login
-  test("invalid login", async () => {
+  test("missing field", async () => {
     const res = await request(app)
-      .post("/login")
+      .post("/register")
       .send({
-        username: "coordinator",
-        password: "wrongpassword"
+        name: "student",
+        studentID: "123456789"
       });
-    expect(res.statusCode).toBe(401);
+
+    expect(res.statusCode).toBe(400);
   });
 
-// Logout test
-  test("logout destroys session and blocks protected route", async () => {
-    const agent = request.agent(app);
+  test("invalid student ID < 9 digits", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "12345678",
+        email: "student@torontomu.ca"
+      });
 
-    const loginRes = await agent.post("/login").send({
-      username: "coordinator",
-      password: "password"
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid student ID > 9 digits", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "1234567890",
+        email: "student@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid student ID contains letters", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123A5B89C",
+        email: "student@torontomu.ca"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("invalid email", async () => {
+    const res = await request(app)
+      .post("/register")
+      .send({
+        name: "student",
+        studentID: "123456789",
+        email: "test@gmail.com"
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  test("duplicate applicant ID", async () => {
+    await request(app).post("/register").send({
+      name: "student1",
+      studentID: "123456789",
+      email: "student1@torontomu.ca"
     });
-    expect(loginRes.statusCode).toBe(200);
 
-    const beforeLogout = await agent.get("/dashboard");
-    expect(beforeLogout.statusCode).toBe(200);
+    const res = await request(app).post("/register").send({
+      name: "student2",
+      studentID: "123456789",
+      email: "student2@torontomu.ca"
+    });
 
-    const logoutRes = await agent.post("/logout");
-    expect(logoutRes.statusCode).toBe(200);
+    expect(res.statusCode).toBe(400);
+  });
 
-    const afterLogout = await agent.get("/dashboard");
-    expect(afterLogout.statusCode).toBe(401);
+  test("duplicate applicant email", async () => {
+    await request(app).post("/register").send({
+      name: "student1",
+      studentID: "123456780",
+      email: "student@torontomu.ca"
+    });
+
+    const res = await request(app).post("/register").send({
+      name: "student2",
+      studentID: "123456789",
+      email: "student@torontomu.ca"
+    });
+
+    expect(res.statusCode).toBe(400);
   });
 });

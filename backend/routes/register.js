@@ -1,4 +1,4 @@
-// routes/register.js - Route for applicant registration
+// routes/register.js
 const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
@@ -12,7 +12,7 @@ router.post("/register", (req, res) => {
   }
 
   if (!/^\d{9}$/.test(studentID)) {
-    return res.status(400).json({ error: "Student ID must be 9 digits" });
+    return res.status(400).json({ error: "Student ID must be exactly 9 digits" });
   }
 
   if (!email.endsWith("@torontomu.ca")) {
@@ -27,16 +27,19 @@ router.post("/register", (req, res) => {
 
     stmt.run(name, studentID, email);
 
-    res.status(201).json({ message: "Applicant registered successfully" });
-
+    return res.status(201).json({
+      message: "Applicant registered successfully"
+    });
+    
   } catch (err) {
     if (err.message.includes("UNIQUE constraint failed")) {
-      return res.status(400).json({ error: "Student ID or email already exists" });
+      return res.status(400).json({
+        error: "Student ID or email already exists"
+      });
     }
 
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 module.exports = router;
