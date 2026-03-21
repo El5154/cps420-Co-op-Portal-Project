@@ -1,6 +1,6 @@
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
-const BASE_URL = "https://your-app-name.onrender.com";
+const BASE_URL = "https://co-op-portal-cps406.onrender.com";
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();

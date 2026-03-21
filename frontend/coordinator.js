@@ -1,7 +1,7 @@
 const tableBody = document.getElementById("applicantTableBody");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
-const BASE_URL = "https://your-app-name.onrender.com";
+const BASE_URL = "https://co-op-portal-cps406.onrender.com";
 
 function showMessage(text, type) {
   message.textContent = text;
