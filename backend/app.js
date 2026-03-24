@@ -44,8 +44,4 @@ app.get("/", (req, res) => {
   res.status(200).send("Server is running");
 });
 
-app.get("/dashboard", requireAuth, (req, res) => {
-  res.status(200).json({ message: `Welcome, ${req.session.user.username}!` });
-});
-
 module.exports = app;

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Applicant Dashboard</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <h1>Applicant Dashboard</h1>
+
+  <div id="message" class="message"></div>
+
+  <section>
+    <h2>Profile</h2>
+    <p><strong>Name:</strong> <span id="name">-</span></p>
+    <p><strong>Student ID:</strong> <span id="studentID">-</span></p>
+  </section>
+
+  <section>
+    <h2>Application Status</h2>
+    <p><strong>Provisional Status:</strong> <span id="provisionalStatus">-</span></p>
+    <p><strong>Final Status:</strong> <span id="finalStatus">-</span></p>
+  </section>
+
+  <section>
+    <h2>Submissions</h2>
+    <p><strong>Report Status:</strong> <span id="reportStatus">-</span></p>
+    <p><strong>Evaluation Status:</strong> <span id="evaluationStatus">-</span></p>
+    <p><strong>Deadline:</strong> <span id="deadline">-</span></p>
+  </section>
+
+  <section>
+    <h2>Report Submission</h2>
+    <input type="file" id="reportFile" accept=".pdf" />
+    <button id="uploadBtn">Upload Report</button>
+  </section>
+
+  <button id="logoutBtn">Logout</button>
+
+  <script src="config.js"></script>
+  <script src="applicant-dashboard.js"></script>
+</body>
+</html>

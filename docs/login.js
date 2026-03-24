@@ -35,7 +35,7 @@ form.addEventListener("submit", async (e) => {
       if (data.role === "coordinator") {
         window.location.href = "coordinator.html";
       } else if (data.role === "applicant") {
-        window.location.href = "applicant-status.html";
+        window.location.href = "applicant-dashboard.html";
       }
     } else {
       message.textContent = data.error || "Login failed.";

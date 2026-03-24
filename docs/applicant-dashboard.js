@@ -2,24 +2,21 @@ const nameSpan = document.getElementById("name");
 const studentIDSpan = document.getElementById("studentID");
 const provisionalStatusSpan = document.getElementById("provisionalStatus");
 const finalStatusSpan = document.getElementById("finalStatus");
+const reportStatusSpan = document.getElementById("reportStatus");
+const evaluationStatusSpan = document.getElementById("evaluationStatus");
+const deadlineSpan = document.getElementById("deadline");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
 
 function showMessage(text, type) {
   message.textContent = text;
   message.className = "message";
-
-  if (type) {
-    message.classList.add(type);
-  }
+  if (type) message.classList.add(type);
 }
 
-async function loadApplicantStatus() {
-  
-  showMessage("", "");
-
+async function loadDashboard() {
   try {
-    const response = await fetch(`${BASE_URL}/applicants/status`, {
+    const response = await fetch(`${BASE_URL}/applicant/dashboard`, {
       method: "GET",
       credentials: "include"
     });
@@ -31,8 +28,11 @@ async function loadApplicantStatus() {
       studentIDSpan.textContent = data.studentID || "-";
       provisionalStatusSpan.textContent = data.provisional_status || "-";
       finalStatusSpan.textContent = data.final_status || "-";
+      reportStatusSpan.textContent = data.report_status || "-";
+      evaluationStatusSpan.textContent = data.evaluation_status || "-";
+      deadlineSpan.textContent = data.deadline || "-";
     } else {
-      showMessage(data.error || "Failed to load application status.", "error");
+      showMessage(data.error || "Failed to load dashboard.", "error");
     }
   } catch (error) {
     showMessage("Could not connect to the server.", "error");
@@ -56,4 +56,4 @@ logoutBtn.addEventListener("click", async () => {
   }
 });
 
-loadApplicantStatus();
+loadDashboard();
