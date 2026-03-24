@@ -2,14 +2,6 @@ const tableBody = document.getElementById("applicantTableBody");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
 
-const isLocal =
-  window.location.hostname === "127.0.0.1" ||
-  window.location.hostname === "localhost";
-
-const BASE_URL = isLocal
-  ? "http://localhost:3000"
-  : "https://co-op-portal-cps406.onrender.com";
-
 function showMessage(text, type) {
   message.textContent = text;
   message.className = "message";
