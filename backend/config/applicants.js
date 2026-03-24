@@ -25,6 +25,15 @@ db.exec(`
     password TEXT NOT NULL,
     role TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    applicant_id INTEGER NOT NULL,
+    report_filename TEXT NOT NULL,
+    report_path TEXT NOT NULL,
+    report_uploaded INTEGER DEFAULT 0,
+    report_uploaded_at TEXT
+  );
 `);
 
 module.exports = db;
