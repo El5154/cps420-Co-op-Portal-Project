@@ -4,7 +4,14 @@ const provisionalStatusSpan = document.getElementById("provisionalStatus");
 const finalStatusSpan = document.getElementById("finalStatus");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
-const BASE_URL = "http://localhost:3000";
+
+const isLocal =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost";
+
+const BASE_URL = isLocal
+  ? "http://localhost:3000"
+  : "https://co-op-portal-cps406.onrender.com";
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -20,7 +27,7 @@ async function loadApplicantStatus() {
   showMessage("", "");
 
   try {
-    const response = await fetch(BASE_URL + "/applicants/status", {
+    const response = await fetch(`${BASE_URL}/applicants/status`, {
       method: "GET",
       credentials: "include"
     });
@@ -42,7 +49,7 @@ async function loadApplicantStatus() {
 
 logoutBtn.addEventListener("click", async () => {
   try {
-    const response = await fetch(BASE_URL + "/logout", {
+    const response = await fetch(`${BASE_URL}/logout`, {
       method: "POST",
       credentials: "include"
     });

@@ -20,11 +20,12 @@ app.use(cors({
 }));
 
 app.use(session({
-  secret: "cps420-coop-portal-secret-key",
+  secret: "your-secret",
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: false,
+    httpOnly: true,
     sameSite: "lax"
   }
 }));

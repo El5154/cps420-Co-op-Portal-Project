@@ -1,7 +1,14 @@
 const tableBody = document.getElementById("applicantTableBody");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
-const BASE_URL = "http://localhost:3000";
+
+const isLocal =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost";
+
+const BASE_URL = isLocal
+  ? "http://localhost:3000"
+  : "https://co-op-portal-cps406.onrender.com";
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -15,7 +22,7 @@ async function loadApplicants() {
   showMessage("", "");
 
   try {
-    const response = await fetch(BASE_URL + "/applicants", {
+    const response = await fetch(`${BASE_URL}/applicants`, {
       method: "GET",
       credentials: "include"
     });
@@ -103,7 +110,7 @@ async function updateStatus(applicantId) {
   }
 
   try {
-    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/status", {
+    const response = await fetch(`${BASE_URL}/applicants/${applicantId}/status`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json"
@@ -127,7 +134,7 @@ async function updateStatus(applicantId) {
 
 async function finalizeDecision(applicantId) {
   try {
-    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/finalize", {
+    const response = await fetch(`${BASE_URL}/applicants/${applicantId}/finalize`, {
       method: "PATCH",
       credentials: "include"
     });
@@ -155,7 +162,7 @@ async function createAccount(applicantId) {
   }
 
   try {
-    const response = await fetch(BASE_URL + "/applicants/" + applicantId + "/create-account", {
+    const response = await fetch(`${BASE_URL}/applicants/${applicantId}/create-account`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -185,7 +192,7 @@ async function createAccount(applicantId) {
 
 logoutBtn.addEventListener("click", async () => {
   try {
-    const response = await fetch(BASE_URL + "/logout", {
+    const response = await fetch(`${BASE_URL}/logout`, {
       method: "POST",
       credentials: "include"
     });

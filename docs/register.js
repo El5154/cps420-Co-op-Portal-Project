@@ -1,6 +1,13 @@
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
-const BASE_URL = "http://localhost:3000";
+
+const isLocal =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost";
+
+const BASE_URL = isLocal
+  ? "http://localhost:3000"
+  : "https://co-op-portal-cps406.onrender.com";
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -31,7 +38,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   try {
-    const response = await fetch(BASE_URL + "/register", {
+    const response = await fetch(`${BASE_URL}/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
