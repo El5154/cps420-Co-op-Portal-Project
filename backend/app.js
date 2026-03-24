@@ -11,12 +11,12 @@ const requireAuth = require("./middleware/requireAuth");
 const app = express();
 
 app.set("trust proxy", 1);
-
 app.use(express.json());
 
 app.use(cors({
   origin: [
     "http://localhost:5500",
+    "http://127.0.0.1:5500",
     "https://el5154.github.io"
   ],
   credentials: true
@@ -27,9 +27,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: true,
     httpOnly: true,
-    sameSite: "lax"
+    sameSite: "none"
   }
 }));
 
@@ -44,7 +44,6 @@ app.get("/", (req, res) => {
 
 app.get("/dashboard", requireAuth, (req, res) => {
   res.status(200).json({ message: `Welcome, ${req.session.user.username}!` });
-}
-);
+});
 
 module.exports = app;
