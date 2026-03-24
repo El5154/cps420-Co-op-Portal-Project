@@ -22,14 +22,16 @@ app.use(cors({
   credentials: true
 }));
 
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(session({
   secret: "your-secret",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,
+    secure: isProduction,
     httpOnly: true,
-    sameSite: "none"
+    sameSite: isProduction ? "none" : "lax"
   }
 }));
 
