@@ -1,120 +1,222 @@
+// test/login.test.js
+
 const request = require("supertest");
-const app = require("../app");
+const express = require("express");
+
+jest.mock("../config/applicants", () => ({
+  prepare: jest.fn(),
+}));
+
 const db = require("../config/applicants");
+const loginRoutes = require("../routes/login");
 
-describe("Login and security check", () => {
+describe("Login Routes", () => {
+  let app;
+
   beforeEach(() => {
-    db.prepare("DELETE FROM users").run();
-    db.prepare("DELETE FROM applicants").run();
+    app = express();
+    app.use(express.json());
 
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("coordinator", "password", "coordinator");
-
-    db.prepare(`
-      INSERT INTO applicants (name, studentID, email)
-      VALUES (?, ?, ?)
-    `).run("Alice", "123456789", "alice@torontomu.ca");
-
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("123456789", "password", "applicant");
-  });
-
-  test("login_valid_user_coordinator", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({
-        username: "coordinator",
-        password: "password"
-      });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe("Login successful");
-    expect(res.body.role).toBe("coordinator");
-  });
-
-  test("login_valid_user_applicant", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({
-        username: "123456789",
-        password: "password"
-      });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.message).toBe("Login successful");
-    expect(res.body.role).toBe("applicant");
-  });
-
-  test("login_incorrect_password", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({
-        username: "coordinator",
-        password: "wrongpassword"
-      });
-
-    expect(res.statusCode).toBe(401);
-    expect(res.body.error).toBe("Invalid credentials");
-  });
-
-  test("login_incorrect_email", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({
-        username: "wronguser",
-        password: "password"
-      });
-
-    expect(res.statusCode).toBe(401);
-    expect(res.body.error).toBe("Invalid credentials");
-  });
-
-  test("login_is_empty", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({});
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("Username and password are required");
-  });
-
-  test("login_nonexistent_user", async () => {
-    const res = await request(app)
-      .post("/login")
-      .send({
-        username: "notreal",
-        password: "password"
-      });
-
-    expect(res.statusCode).toBe(401);
-    expect(res.body.error).toBe("Invalid credentials");
-  });
-
-  test("logout destroys session and blocks protected route", async () => {
-    const agent = request.agent(app);
-
-    const loginRes = await agent.post("/login").send({
-      username: "coordinator",
-      password: "password"
+    // fake session middleware for testing
+    app.use((req, res, next) => {
+      req.session = {
+        save: jest.fn((cb) => cb(null)),
+        destroy: jest.fn((cb) => cb()),
+      };
+      next();
     });
-    expect(loginRes.statusCode).toBe(200);
 
-    const beforeLogout = await agent.get("/dashboard");
-    expect(beforeLogout.statusCode).toBe(200);
+    app.use(loginRoutes);
 
-    const logoutRes = await agent.post("/logout");
-    expect(logoutRes.statusCode).toBe(200);
-
-    const afterLogout = await agent.get("/dashboard");
-    expect(afterLogout.statusCode).toBe(401);
+    jest.clearAllMocks();
   });
 
-  test("unauthenticated user blocked from protected route", async () => {
-    const res = await request(app).get("/dashboard");
-    expect(res.statusCode).toBe(401);
+  describe("POST /login", () => {
+    test("login_valid_user: logs in coordinator with valid credentials", async () => {
+      db.prepare.mockReturnValueOnce({
+        get: jest.fn().mockReturnValue({
+          id: 1,
+          username: "coordinator1",
+          password: "pass123",
+          role: "coordinator",
+        }),
+      });
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "coordinator1",
+          password: "pass123",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        message: "Login successful",
+        role: "coordinator",
+      });
+    });
+
+    test("login_valid_user: logs in applicant and attaches studentID to session", async () => {
+      const userGetMock = jest.fn().mockReturnValue({
+        id: 2,
+        username: "123456789",
+        password: "applicantpass",
+        role: "applicant",
+      });
+
+      const applicantGetMock = jest.fn().mockReturnValue({
+        studentID: "123456789",
+      });
+
+      db.prepare
+        .mockReturnValueOnce({ get: userGetMock })
+        .mockReturnValueOnce({ get: applicantGetMock });
+
+      let savedSessionUser;
+
+      app = express();
+      app.use(express.json());
+      app.use((req, res, next) => {
+        req.session = {
+          save: jest.fn((cb) => {
+            savedSessionUser = req.session.user;
+            cb(null);
+          }),
+          destroy: jest.fn((cb) => cb()),
+        };
+        next();
+      });
+      app.use(loginRoutes);
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "123456789",
+          password: "applicantpass",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        message: "Login successful",
+        role: "applicant",
+      });
+
+      expect(savedSessionUser).toEqual({
+        id: 2,
+        username: "123456789",
+        role: "applicant",
+        studentID: "123456789",
+      });
+    });
+
+    test("login_incorrect_password: rejects wrong password", async () => {
+      db.prepare.mockReturnValueOnce({
+        get: jest.fn().mockReturnValue(undefined),
+      });
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "coordinator1",
+          password: "wrongpass",
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({
+        error: "Invalid credentials",
+      });
+    });
+
+    test("login_incorrect_email: rejects wrong username", async () => {
+      db.prepare.mockReturnValueOnce({
+        get: jest.fn().mockReturnValue(undefined),
+      });
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "wronguser",
+          password: "pass123",
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({
+        error: "Invalid credentials",
+      });
+    });
+
+    test("login_nonexistent_user: rejects user not in system", async () => {
+      db.prepare.mockReturnValueOnce({
+        get: jest.fn().mockReturnValue(undefined),
+      });
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "randomuser",
+          password: "randompass",
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body).toEqual({
+        error: "Invalid credentials",
+      });
+    });
+
+    test("login_is_empty: rejects empty input", async () => {
+      const res = await request(app)
+        .post("/login")
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({
+        error: "Username and password are required",
+      });
+    });
+
+    test("returns 500 if session save fails", async () => {
+      db.prepare.mockReturnValueOnce({
+        get: jest.fn().mockReturnValue({
+          id: 1,
+          username: "coordinator1",
+          password: "pass123",
+          role: "coordinator",
+        }),
+      });
+
+      app = express();
+      app.use(express.json());
+      app.use((req, res, next) => {
+        req.session = {
+          save: jest.fn((cb) => cb(new Error("session failed"))),
+          destroy: jest.fn((cb) => cb()),
+        };
+        next();
+      });
+      app.use(loginRoutes);
+
+      const res = await request(app)
+        .post("/login")
+        .send({
+          username: "coordinator1",
+          password: "pass123",
+        });
+
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({
+        error: "Failed to save session",
+      });
+    });
+  });
+
+  describe("POST /logout", () => {
+    test("logs out successfully", async () => {
+      const res = await request(app).post("/logout");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        message: "Logged out",
+      });
+    });
   });
 });

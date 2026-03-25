@@ -7,6 +7,8 @@ const evaluationStatusSpan = document.getElementById("evaluationStatus");
 const deadlineSpan = document.getElementById("deadline");
 const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
+const uploadReportBtn = document.getElementById("uploadBtn");
+const reportFileInput = document.getElementById("reportFile");
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -38,6 +40,38 @@ async function loadDashboard() {
     showMessage("Could not connect to the server.", "error");
   }
 }
+
+uploadReportBtn.addEventListener("click", async () => {
+  const file = reportFileInput.files[0];
+
+  if (!file) {
+    showMessage("No file selected.", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("report", file);
+
+  try {
+    const response = await fetch(`${BASE_URL}/uploadReport`, {
+      method: "POST",
+      credentials: "include",
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      showMessage(data.message || "Report uploaded successfully.", "success");
+      reportFileInput.value = "";
+      loadDashboard();
+    } else {
+      showMessage(data.error || "Failed to upload report.", "error");
+    }
+  } catch (error) {
+    showMessage("Could not connect to the server.", "error");
+  }
+});
 
 logoutBtn.addEventListener("click", async () => {
   try {

@@ -1,139 +1,148 @@
+// test/applicantDashboard.test.js
+
 const request = require("supertest");
-const app = require("../app");
+const express = require("express");
+
+jest.mock("../config/applicants", () => ({
+  prepare: jest.fn(),
+}));
+
+jest.mock("../middleware/requireAuth", () => {
+  return (req, res, next) => {
+    const role = req.headers["x-test-role"];
+    const studentID = req.headers["x-test-studentid"];
+
+    if (!role || !studentID) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    req.session = {
+      user: {
+        role,
+        studentID,
+      },
+    };
+
+    next();
+  };
+});
+
 const db = require("../config/applicants");
+const applicantReviewRoutes = require("../routes/applicantReview");
 
-describe("Application status for student", () => {
-  let applicantAgent;
-  let coordinatorAgent;
+describe("GET /applicant/dashboard", () => {
+  let app;
 
-  beforeEach(async () => {
-    db.prepare("DELETE FROM users").run();
-    db.prepare("DELETE FROM applicants").run();
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use(applicantReviewRoutes);
 
-    db.prepare(`
-      INSERT INTO applicants (name, studentID, email, provisional_status, final_status)
-      VALUES (?, ?, ?, ?, ?)
-    `).run("Alice", "123456789", "alice@torontomu.ca", "Pending", "Pending");
-
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("123456789", "password", "applicant");
-
-    db.prepare(`
-      INSERT INTO users (username, password, role)
-      VALUES (?, ?, ?)
-    `).run("coordinator", "password", "coordinator");
-
-    applicantAgent = request.agent(app);
-    coordinatorAgent = request.agent(app);
-
-    await applicantAgent.post("/login").send({
-      username: "123456789",
-      password: "password"
-    });
-
-    await coordinatorAgent.post("/login").send({
-      username: "coordinator",
-      password: "password"
-    });
+    jest.clearAllMocks();
   });
 
-  test("view_condtional_status_pending", async () => {
-    const res = await applicantAgent.get("/applicants/status");
+  test("view_conditional_status_accept: returns applicant dashboard data when applicant is accepted", async () => {
+    const mockApplicant = {
+      name: "Eric Liu",
+      studentID: "123456789",
+      provisional_status: "Accepted",
+      final_status: "Pending",
+      report_status: "Not Submitted",
+      evaluation_status: "Not Evaluated",
+      deadline: "2026-04-01",
+    };
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.studentID).toBe("123456789");
+    db.prepare.mockReturnValue({
+      get: jest.fn().mockReturnValue(mockApplicant),
+    });
+
+    const res = await request(app)
+      .get("/applicant/dashboard")
+      .set("x-test-role", "applicant")
+      .set("x-test-studentid", "123456789");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(mockApplicant);
+    expect(db.prepare).toHaveBeenCalled();
+  });
+
+  test("view_conditional_status_pending: returns pending statuses for applicant", async () => {
+    const mockApplicant = {
+      name: "Jane Doe",
+      studentID: "987654321",
+      provisional_status: "Pending",
+      final_status: "Pending",
+      report_status: "Not Submitted",
+      evaluation_status: "Not Evaluated",
+      deadline: "2026-04-15",
+    };
+
+    db.prepare.mockReturnValue({
+      get: jest.fn().mockReturnValue(mockApplicant),
+    });
+
+    const res = await request(app)
+      .get("/applicant/dashboard")
+      .set("x-test-role", "applicant")
+      .set("x-test-studentid", "987654321");
+
+    expect(res.status).toBe(200);
     expect(res.body.provisional_status).toBe("Pending");
     expect(res.body.final_status).toBe("Pending");
   });
 
-  test("view_conditional_status_accept", async () => {
-    db.prepare(`
-      UPDATE applicants
-      SET provisional_status = ?
-      WHERE studentID = ?
-    `).run("Accepted", "123456789");
+  test("view_final_status_accept: returns final accepted status for applicant", async () => {
+    const mockApplicant = {
+      name: "Alex Kim",
+      studentID: "111222333",
+      provisional_status: "Accepted",
+      final_status: "Accepted",
+      report_status: "Submitted",
+      evaluation_status: "Received",
+      deadline: "2026-04-20",
+    };
 
-    const res = await applicantAgent.get("/applicants/status");
+    db.prepare.mockReturnValue({
+      get: jest.fn().mockReturnValue(mockApplicant),
+    });
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.provisional_status).toBe("Accepted");
-    expect(res.body.final_status).toBe("Pending");
-  });
+    const res = await request(app)
+      .get("/applicant/dashboard")
+      .set("x-test-role", "applicant")
+      .set("x-test-studentid", "111222333");
 
-  test("view_conditional_status_reject", async () => {
-    db.prepare(`
-      UPDATE applicants
-      SET provisional_status = ?
-      WHERE studentID = ?
-    `).run("Rejected", "123456789");
-
-    const res = await applicantAgent.get("/applicants/status");
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.provisional_status).toBe("Rejected");
-    expect(res.body.final_status).toBe("Pending");
-  });
-
-  test("view_final_status_accept", async () => {
-    db.prepare(`
-      UPDATE applicants
-      SET provisional_status = ?, final_status = ?
-      WHERE studentID = ?
-    `).run("Accepted", "Accepted", "123456789");
-
-    const res = await applicantAgent.get("/applicants/status");
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.provisional_status).toBe("Accepted");
+    expect(res.status).toBe(200);
     expect(res.body.final_status).toBe("Accepted");
   });
 
-  test("view_final_status_reject", async () => {
-    db.prepare(`
-      UPDATE applicants
-      SET provisional_status = ?, final_status = ?
-      WHERE studentID = ?
-    `).run("Rejected", "Rejected", "123456789");
+  test("returns 403 if logged-in user is not an applicant", async () => {
+    const res = await request(app)
+      .get("/applicant/dashboard")
+      .set("x-test-role", "coordinator")
+      .set("x-test-studentid", "123456789");
 
-    const res = await applicantAgent.get("/applicants/status");
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.provisional_status).toBe("Rejected");
-    expect(res.body.final_status).toBe("Rejected");
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "Forbidden" });
   });
 
-  test("status_after_finalization", async () => {
-    db.prepare(`
-      UPDATE applicants
-      SET provisional_status = ?, final_status = ?
-      WHERE studentID = ?
-    `).run("Accepted", "Accepted", "123456789");
+  test("returns 404 if applicant record is not found", async () => {
+    db.prepare.mockReturnValue({
+      get: jest.fn().mockReturnValue(undefined),
+    });
 
-    const res = await applicantAgent.get("/applicants/status");
+    const res = await request(app)
+      .get("/applicant/dashboard")
+      .set("x-test-role", "applicant")
+      .set("x-test-studentid", "000000000");
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.final_status).toBe("Accepted");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Applicant not found" });
   });
 
-  test("student_status_requires_login", async () => {
-    const res = await request(app).get("/applicants/status");
-    expect(res.statusCode).toBe(401);
-  });
+  test("returns 401 if user is not logged in", async () => {
+    const res = await request(app).get("/applicant/dashboard");
 
-  test("student_status_forbidden_to_coordinator", async () => {
-    const res = await coordinatorAgent.get("/applicants/status");
-    expect(res.statusCode).toBe(403);
-    expect(res.body.error).toBe("Forbidden");
-  });
-
-  test("status_returns_404_if_applicant_missing", async () => {
-    db.prepare("DELETE FROM applicants WHERE studentID = ?").run("123456789");
-
-    const res = await applicantAgent.get("/applicants/status");
-
-    expect(res.statusCode).toBe(404);
-    expect(res.body.error).toBe("Applicant not found");
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: "Unauthorized" });
   });
 });

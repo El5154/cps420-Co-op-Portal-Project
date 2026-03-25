@@ -3,5 +3,5 @@ const isLocal =
   window.location.hostname === "localhost";
 
 const BASE_URL = isLocal
-  ? "http://localhost:3000"
+  ? `${window.location.protocol}//${window.location.hostname}:3000`
   : "https://co-op-portal-cps406.onrender.com";
