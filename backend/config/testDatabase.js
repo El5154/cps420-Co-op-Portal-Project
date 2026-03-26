@@ -12,6 +12,11 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     provisional_status TEXT DEFAULT 'Pending',
     final_status TEXT DEFAULT 'Pending',
+    supervisor TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS reports (
+    studentID TEXT UNIQUE NOT NULL,
     report_status TEXT DEFAULT 'Not Submitted',
     evaluation_status TEXT DEFAULT 'Not Evaluated',
     deadline TEXT,
@@ -20,8 +25,7 @@ db.exec(`
     report_uploaded INTEGER DEFAULT 0,
     report_uploaded_at TEXT,
     evaluation_filename TEXT,
-    evaluation_path TEXT,
-    supervisor TEXT
+    evaluation_path TEXT
   );
 
   CREATE TABLE IF NOT EXISTS users (
@@ -31,7 +35,7 @@ db.exec(`
     role TEXT NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS reports (
+  CREATE TABLE IF NOT EXISTS evaluation (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     studentID TEXT UNIQUE NOT NULL,
     evaluation_filename TEXT,
