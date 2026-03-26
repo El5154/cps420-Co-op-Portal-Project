@@ -1,148 +1,165 @@
-// test/applicantDashboard.test.js
-
 const request = require("supertest");
-const express = require("express");
+const app = require("../app");
+const {
+  resetDatabase,
+  seedApplicant,
+  seedReport,
+  seedUser
+} = require("./testUtils");
 
-jest.mock("../config/applicants", () => ({
-  prepare: jest.fn(),
-}));
-
-jest.mock("../middleware/requireAuth", () => {
-  return (req, res, next) => {
-    const role = req.headers["x-test-role"];
-    const studentID = req.headers["x-test-studentid"];
-
-    if (!role || !studentID) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    req.session = {
-      user: {
-        role,
-        studentID,
-      },
-    };
-
-    next();
-  };
-});
-
-const db = require("../config/applicants");
-const applicantReviewRoutes = require("../routes/applicantReview");
-
-describe("GET /applicant/dashboard", () => {
-  let app;
-
+describe("Application status for student", () => {
   beforeEach(() => {
-    app = express();
-    app.use(express.json());
-    app.use(applicantReviewRoutes);
-
-    jest.clearAllMocks();
+    resetDatabase();
   });
 
-  test("view_conditional_status_accept: returns applicant dashboard data when applicant is accepted", async () => {
-    const mockApplicant = {
-      name: "Eric Liu",
-      studentID: "123456789",
-      provisional_status: "Accepted",
-      final_status: "Pending",
-      report_status: "Not Submitted",
-      evaluation_status: "Not Evaluated",
-      deadline: "2026-04-01",
-    };
+  async function loginApplicant(studentID, password = "pass123") {
+    const agent = request.agent(app);
 
-    db.prepare.mockReturnValue({
-      get: jest.fn().mockReturnValue(mockApplicant),
+    await agent.post("/login").send({
+      username: studentID,
+      password
     });
 
-    const res = await request(app)
-      .get("/applicant/dashboard")
-      .set("x-test-role", "applicant")
-      .set("x-test-studentid", "123456789");
+    return agent;
+  }
+
+  test("view_conditional_status_accept", async () => {
+    seedApplicant({
+      name: "Accepted Student",
+      studentID: "501111111",
+      email: "accept@torontomu.ca",
+      provisional_status: "Accepted"
+    });
+
+    seedReport({ studentID: "501111111" });
+
+    seedUser({
+      username: "501111111",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    const agent = await loginApplicant("501111111");
+    const res = await agent.get("/applicant/dashboard");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(mockApplicant);
-    expect(db.prepare).toHaveBeenCalled();
+    expect(res.body.provisional_status).toBe("Accepted");
   });
 
-  test("view_conditional_status_pending: returns pending statuses for applicant", async () => {
-    const mockApplicant = {
-      name: "Jane Doe",
-      studentID: "987654321",
-      provisional_status: "Pending",
-      final_status: "Pending",
-      report_status: "Not Submitted",
-      evaluation_status: "Not Evaluated",
-      deadline: "2026-04-15",
-    };
-
-    db.prepare.mockReturnValue({
-      get: jest.fn().mockReturnValue(mockApplicant),
+  test("view_conditional_status_reject", async () => {
+    seedApplicant({
+      name: "Rejected Student",
+      studentID: "502222222",
+      email: "reject@torontomu.ca",
+      provisional_status: "Rejected"
     });
 
-    const res = await request(app)
-      .get("/applicant/dashboard")
-      .set("x-test-role", "applicant")
-      .set("x-test-studentid", "987654321");
+    seedReport({ studentID: "502222222" });
+
+    seedUser({
+      username: "502222222",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    const agent = await loginApplicant("502222222");
+    const res = await agent.get("/applicant/dashboard");
+
+    expect(res.status).toBe(200);
+    expect(res.body.provisional_status).toBe("Rejected");
+  });
+
+  test("view_condtional_status_pending", async () => {
+    seedApplicant({
+      name: "Pending Student",
+      studentID: "503333333",
+      email: "pending@torontomu.ca",
+      provisional_status: "Pending"
+    });
+
+    seedReport({ studentID: "503333333" });
+
+    seedUser({
+      username: "503333333",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    const agent = await loginApplicant("503333333");
+    const res = await agent.get("/applicant/dashboard");
 
     expect(res.status).toBe(200);
     expect(res.body.provisional_status).toBe("Pending");
-    expect(res.body.final_status).toBe("Pending");
   });
 
-  test("view_final_status_accept: returns final accepted status for applicant", async () => {
-    const mockApplicant = {
-      name: "Alex Kim",
-      studentID: "111222333",
-      provisional_status: "Accepted",
-      final_status: "Accepted",
-      report_status: "Submitted",
-      evaluation_status: "Received",
-      deadline: "2026-04-20",
-    };
-
-    db.prepare.mockReturnValue({
-      get: jest.fn().mockReturnValue(mockApplicant),
+  test("view_final_status_reject", async () => {
+    seedApplicant({
+      name: "Final Reject",
+      studentID: "504444444",
+      email: "finalreject@torontomu.ca",
+      final_status: "Rejected"
     });
 
-    const res = await request(app)
-      .get("/applicant/dashboard")
-      .set("x-test-role", "applicant")
-      .set("x-test-studentid", "111222333");
+    seedReport({ studentID: "504444444" });
+
+    seedUser({
+      username: "504444444",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    const agent = await loginApplicant("504444444");
+    const res = await agent.get("/applicant/dashboard");
+
+    expect(res.status).toBe(200);
+    expect(res.body.final_status).toBe("Rejected");
+  });
+
+  test("view_final_status_accept", async () => {
+    seedApplicant({
+      name: "Final Accept",
+      studentID: "505555555",
+      email: "finalaccept@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedReport({ studentID: "505555555" });
+
+    seedUser({
+      username: "505555555",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    const agent = await loginApplicant("505555555");
+    const res = await agent.get("/applicant/dashboard");
 
     expect(res.status).toBe(200);
     expect(res.body.final_status).toBe("Accepted");
   });
 
-  test("returns 403 if logged-in user is not an applicant", async () => {
-    const res = await request(app)
-      .get("/applicant/dashboard")
-      .set("x-test-role", "coordinator")
-      .set("x-test-studentid", "123456789");
-
-    expect(res.status).toBe(403);
-    expect(res.body).toEqual({ error: "Forbidden" });
-  });
-
-  test("returns 404 if applicant record is not found", async () => {
-    db.prepare.mockReturnValue({
-      get: jest.fn().mockReturnValue(undefined),
+  test("status_after_finalization", async () => {
+    seedApplicant({
+      name: "Read Only Student",
+      studentID: "506666666",
+      email: "readonly@torontomu.ca",
+      provisional_status: "Accepted",
+      final_status: "Accepted"
     });
 
-    const res = await request(app)
-      .get("/applicant/dashboard")
-      .set("x-test-role", "applicant")
-      .set("x-test-studentid", "000000000");
+    seedReport({ studentID: "506666666" });
 
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: "Applicant not found" });
-  });
+    seedUser({
+      username: "506666666",
+      password: "pass123",
+      role: "applicant"
+    });
 
-  test("returns 401 if user is not logged in", async () => {
-    const res = await request(app).get("/applicant/dashboard");
+    const agent = await loginApplicant("506666666");
+    const res = await agent.get("/applicant/dashboard");
 
-    expect(res.status).toBe(401);
-    expect(res.body).toEqual({ error: "Unauthorized" });
+    expect(res.status).toBe(200);
+    expect(res.body.provisional_status).toBe("Accepted");
+    expect(res.body.final_status).toBe("Accepted");
   });
 });

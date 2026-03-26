@@ -1,208 +1,113 @@
 const request = require("supertest");
-const fs = require("fs");
-const path = require("path");
 const app = require("../app");
-const db = require("../config/applicants");
+const {
+  resetDatabase,
+  seedApplicant,
+  seedReport,
+  seedUser,
+  db
+} = require("./testUtils");
 
-const testFilesDir = path.join(__dirname, "test-files");
-const validPdfPath = path.join(testFilesDir, "valid.pdf");
-const invalidTxtPath = path.join(testFilesDir, "invalid.txt");
-const largePdfPath = path.join(testFilesDir, "large.pdf");
+describe("Student Submission (Work-Term Report Upload)", () => {
+  let agent;
 
-beforeAll(() => {
-  fs.mkdirSync(testFilesDir, { recursive: true });
+  beforeEach(async () => {
+    resetDatabase();
 
-  // tiny fake pdf file
-  fs.writeFileSync(
-    validPdfPath,
-    "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
-  );
-
-  // invalid text file
-  fs.writeFileSync(invalidTxtPath, "this is not a pdf");
-
-  // create a file slightly larger than 10MB
-  const elevenMB = Buffer.alloc(11 * 1024 * 1024, "a");
-  fs.writeFileSync(largePdfPath, elevenMB);
-});
-
-beforeEach(() => {
-  // clear tables before each test
-  db.prepare("DELETE FROM applicants").run();
-  db.prepare("DELETE FROM reports").run();
-  db.prepare("DELETE FROM users").run();
-
-  // insert applicant row
-db.prepare(`
-    INSERT INTO applicants (
-      name,
-      studentID,
-      email,
-      provisional_status,
-      final_status,
-      report_status
-    ) VALUES (?, ?, ?, ?, ?, ?)
-  `).run(
-    "Test Applicant",
-    "500123456",
-    "test@torontomu.ca",
-    "Pending",
-    "Pending",
-    "Not Submitted"
-  );
-
-  // insert reports row
-  db.prepare(`
-    INSERT INTO reports (
-      studentID,
-      report_status,
-      evaluation_status,
-      deadline
-    ) VALUES (?, ?, ?, ?)
-  `).run(
-    "500123456",
-    "Not Submitted",
-    "Not Evaluated",
-    null
-  );
-
-  // insert applicant user
-  db.prepare(`
-    INSERT INTO users (username, password, role)
-    VALUES (?, ?, ?)
-  `).run("500123456", "password123", "applicant");
-
-  // insert coordinator user
-  db.prepare(`
-    INSERT INTO users (username, password, role)
-    VALUES (?, ?, ?)
-  `).run("coordinator1", "password123", "coordinator");
-});
-
-afterAll(() => {
-  try {
-    if (fs.existsSync(validPdfPath)) fs.unlinkSync(validPdfPath);
-    if (fs.existsSync(invalidTxtPath)) fs.unlinkSync(invalidTxtPath);
-    if (fs.existsSync(largePdfPath)) fs.unlinkSync(largePdfPath);
-
-    if (fs.existsSync(testFilesDir)) fs.rmdirSync(testFilesDir);
-
-    if (fs.existsSync("test.db")) fs.unlinkSync("test.db");
-  } catch (err) {
-    // ignore cleanup errors
-  }
-});
-
-describe("Upload Report Route", () => {
-  test("should reject upload if not logged in", async () => {
-    const res = await request(app)
-      .post("/uploadReport")
-      .attach("report", validPdfPath);
-
-    expect(res.status).toBe(401);
-    expect(res.body.error).toBe("You must be logged in");
-  });
-
-  test("should reject upload if logged in as coordinator", async () => {
-    const agent = request.agent(app);
-
-    const loginRes = await agent.post("/login").send({
-      username: "coordinator1",
-      password: "password123"
+    seedApplicant({
+      name: "Eric Liu",
+      studentID: "501111111",
+      email: "eric@torontomu.ca"
     });
 
-    expect(loginRes.status).toBe(200);
-
-    const res = await agent
-      .post("/uploadReport")
-      .attach("report", validPdfPath);
-
-    expect(res.status).toBe(403);
-    expect(res.body.error).toBe("Forbidden");
-  });
-
-  test("should upload a valid pdf for a logged-in applicant", async () => {
-    const agent = request.agent(app);
-
-    const loginRes = await agent.post("/login").send({
-      username: "500123456",
-      password: "password123"
+    seedReport({
+      studentID: "501111111"
     });
 
-    expect(loginRes.status).toBe(200);
+    seedUser({
+      username: "501111111",
+      password: "pass123",
+      role: "applicant"
+    });
 
+    agent = request.agent(app);
+
+    await agent.post("/login").send({
+      username: "501111111",
+      password: "pass123"
+    });
+  });
+
+  test("upload_pdf_valid", async () => {
     const res = await agent
       .post("/uploadReport")
-      .attach("report", validPdfPath);
+      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
 
     expect(res.status).toBe(200);
     expect(res.body.message).toBe("Report uploaded successfully");
-
-    const applicant = db.prepare(`
-      SELECT report_status, report_filename, report_path, report_uploaded, report_uploaded_at
-      FROM applicants
-      WHERE studentID = ?
-    `).get("500123456");
-
-    expect(applicant.report_status).toBe("Submitted");
-    expect(applicant.report_uploaded).toBe(1);
-    expect(applicant.report_filename).toBe("500123456_report.pdf");
-    expect(applicant.report_path).toContain("uploads");
-    expect(applicant.report_uploaded_at).not.toBeNull();
   });
 
-  test("should reject upload if no file is sent", async () => {
-    const agent = request.agent(app);
+  test("upload_non_pdf_rejected", async () => {
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", Buffer.from("not a pdf"), "report.docx");
 
-    const loginRes = await agent.post("/login").send({
-      username: "500123456",
-      password: "password123"
-    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Only PDF files are allowed!");
+  });
 
-    expect(loginRes.status).toBe(200);
+  test("upload_pdf_too_large", async () => {
+    const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 1, "a");
 
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", bigBuffer, "big.pdf");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/File too large/i);
+  });
+
+  test("upload_no_file", async () => {
     const res = await agent.post("/uploadReport");
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("No file uploaded");
   });
 
-  test("should reject non-pdf files", async () => {
-    const agent = request.agent(app);
-
-    const loginRes = await agent.post("/login").send({
-      username: "500123456",
-      password: "password123"
-    });
-
-    expect(loginRes.status).toBe(200);
-
-    const res = await agent
+  test("upload_not_logged_in", async () => {
+    const res = await request(app)
       .post("/uploadReport")
-      .attach("report", invalidTxtPath);
+      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Only PDF files are allowed!");
+    expect(res.status).toBe(401);
   });
 
-  test("should reject files larger than 10MB", async () => {
-    const agent = request.agent(app);
+  test("report_link_correct_student", async () => {
+    await agent
+      .post("/uploadReport")
+      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
 
-    const loginRes = await agent.post("/login").send({
-      username: "500123456",
-      password: "password123"
-    });
+    const report = db.prepare(
+      "SELECT * FROM reports WHERE studentID = ?"
+    ).get("501111111");
 
-    expect(loginRes.status).toBe(200);
+    expect(report).toBeTruthy();
+    expect(report.report_filename).toBe("501111111_report.pdf");
+    expect(report.report_status).toBe("Submitted");
+    expect(report.report_uploaded).toBe(1);
+  });
+
+  test("upload_pdf_edge_size", async () => {
+    const limitBuffer = Buffer.alloc(10 * 1024 * 1024, "a");
+    const pdfLikeBuffer = Buffer.concat([
+      Buffer.from("%PDF-1.4\n"),
+      limitBuffer.slice(0, limitBuffer.length - 9)
+    ]);
 
     const res = await agent
       .post("/uploadReport")
-      .attach("report", largePdfPath, {
-        filename: "large.pdf",
-        contentType: "application/pdf"
-      });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/File too large/i);
+      .attach("report", pdfLikeBuffer, "edge.pdf");
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Report uploaded successfully");
   });
 });

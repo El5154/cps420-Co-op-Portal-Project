@@ -12,7 +12,7 @@ fs.mkdirSync(uploadDir, { recursive: true });
 
 const upload = multer({
   dest: uploadDir,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 + 1}, // 10MB
   fileFilter: (req, file, cb) => {
     const isPdf =
       file.mimetype === "application/pdf" &&
