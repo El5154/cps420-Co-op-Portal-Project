@@ -52,14 +52,16 @@ router.post("/uploadReport", requireAuth, (req, res) => {
     const finalFilename = `${req.session.user.studentID}_report.pdf`;
     const targetPath = path.join(uploadDir, finalFilename);
 
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    };
-    const timestamp = new Date().toLocaleString('en-US', options);
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+
+    const timestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 
     fs.rename(tempPath, targetPath, (err) => {
       if (err) {

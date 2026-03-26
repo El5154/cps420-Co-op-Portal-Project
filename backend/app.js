@@ -8,6 +8,7 @@ const coordinatorReviewRoutes = require("./routes/coordinatorReview");
 const applicantReviewRoutes = require("./routes/applicantReview");
 const uploadReportRoutes = require("./routes/uploadReport");
 const reviewReportRoutes = require("./routes/reviewReport");
+const deadlineRoutes = require("./routes/setDeadline");
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use(coordinatorReviewRoutes);
 app.use(applicantReviewRoutes);
 app.use(uploadReportRoutes);
 app.use(reviewReportRoutes);  
+app.use(deadlineRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).send("Server is running");

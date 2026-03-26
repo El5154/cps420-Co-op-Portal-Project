@@ -14,6 +14,20 @@ function showMessage(text, type) {
   if (type) message.classList.add(type);
 }
 
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+
+  return new Date(normalized).toLocaleString("en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 async function loadDashboard() {
   try {
     const response = await fetch(`${BASE_URL}/applicant/dashboard`, {
@@ -29,22 +43,21 @@ async function loadDashboard() {
       provisionalStatusSpan.textContent = data.provisional_status || "-";
       finalStatusSpan.textContent = data.final_status || "-";
 
-      // Populate reports table
       reportsTableBody.innerHTML = "";
       const reportStatus = data.report_status || "Not Submitted";
       const evaluationStatus = data.evaluation_status || "Not Evaluated";
       const reportFilename = data.report_filename || null;
-      const submittedAt = data.report_uploaded_at || "-";
-      const deadline = data.deadline || "-";
+      const submittedAt = formatDateTime(data.report_uploaded_at);
+      const deadline = formatDateTime(data.deadline);
 
       if (reportStatus !== "Not Submitted") {
         const row = document.createElement("tr");
         row.style.borderBottom = "1px solid #ddd";
-        
-        const filenameCell = reportFilename 
+
+        const filenameCell = reportFilename
           ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
           : "-";
-        
+
         row.innerHTML = `
           <td style="padding: 8px;">${reportStatus}</td>
           <td style="padding: 8px;">${filenameCell}</td>
@@ -54,9 +67,17 @@ async function loadDashboard() {
         `;
         reportsTableBody.appendChild(row);
       } else {
-        reportsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 10px;">No report submitted yet</td></tr>`;
+        reportsTableBody.innerHTML = `
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">${reportStatus}</td>
+            <td style="padding: 8px;">-</td>
+            <td style="padding: 8px;">-</td>
+            <td style="padding: 8px;">${deadline}</td>
+            <td style="padding: 8px;">${evaluationStatus}</td>
+          </tr>
+        `;
       }
-      
+
     } else {
       showMessage(data.error || "Failed to load dashboard.", "error");
     }
@@ -72,7 +93,7 @@ uploadReportBtn.addEventListener("click", async () => {
     showMessage("No file selected.", "error");
     return;
   }
-    
+
   if (file.size === 0) {
     showMessage("Selected file is empty. Please choose a non-empty PDF", "error");
     return;

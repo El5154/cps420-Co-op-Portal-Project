@@ -103,6 +103,20 @@ a:hover {
   word-break: break-word;
 }
 
+#setDeadline {
+    display: block;
+    margin: 25px auto 0 auto;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: #1f3c88;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
 @media (max-width: 768px) {
   body {
     padding: 25px 15px;
