@@ -24,9 +24,22 @@
 
   <section>
     <h2>Submissions</h2>
-    <p><strong>Report Status:</strong> <span id="reportStatus">-</span></p>
-    <p><strong>Evaluation Status:</strong> <span id="evaluationStatus">-</span></p>
-    <p><strong>Deadline:</strong> <span id="deadline">-</span></p>
+    <table id="reportsTable" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 2px solid #333;">
+          <th style="padding: 8px; text-align: left;">Report Status</th>
+          <th style="padding: 8px; text-align: left;">Filename</th>
+          <th style="padding: 8px; text-align: left;">Submitted At</th>
+          <th style="padding: 8px; text-align: left;">Deadline</th>
+          <th style="padding: 8px; text-align: left;">Evaluation Status</th>
+        </tr>
+      </thead>
+      <tbody id="reportsTableBody">
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 10px;">No report submitted yet</td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 
   <section>

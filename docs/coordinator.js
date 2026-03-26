@@ -47,7 +47,10 @@ function renderApplicants(applicants) {
   applicants.forEach((applicant) => {
     const row = document.createElement("tr");
 
+    const reportStatus = applicant.report_status ?? "Not Submitted";
+    const evaluationStatus = applicant.evaluation_status ?? "Not Evaluated";
     const finalized = applicant.final_status !== "Pending";
+    const submissionDone = reportStatus !== "Not Submitted";
 
     row.innerHTML = `
       <td>${applicant.name}</td>
@@ -55,6 +58,7 @@ function renderApplicants(applicants) {
       <td>${applicant.email}</td>
       <td>${applicant.provisional_status}</td>
       <td>${applicant.final_status}</td>
+      <td>${reportStatus}</td>
       <td>
         <div class="actions">
           <select id="status-${applicant.id}" ${finalized ? "disabled" : ""}>
@@ -69,6 +73,10 @@ function renderApplicants(applicants) {
 
           <button onclick="finalizeDecision(${applicant.id})" ${finalized ? "disabled" : ""}>
             Finalize
+          </button>
+
+          <button onclick="window.location.href = 'reviewReport.html?applicantId=${applicant.id}'" ${!submissionDone ? "disabled" : ""}>
+            Review Reports
           </button>
 
           <input

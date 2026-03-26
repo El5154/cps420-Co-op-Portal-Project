@@ -15,12 +15,13 @@ db.exec(`
     report_status TEXT DEFAULT 'Not Submitted',
     evaluation_status TEXT DEFAULT 'Not Evaluated',
     deadline TEXT,
-    report_filename TEXT NOT NULL,
-    report_path TEXT NOT NULL,
+    report_filename TEXT,
+    report_path TEXT,
     report_uploaded INTEGER DEFAULT 0,
     report_uploaded_at TEXT,
     evaluation_filename TEXT,
-    evaluation_path TEXT
+    evaluation_path TEXT,
+    supervisor TEXT
   );
 
   CREATE TABLE IF NOT EXISTS users (
@@ -28,6 +29,13 @@ db.exec(`
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    studentID TEXT UNIQUE NOT NULL,
+    evaluation_filename TEXT,
+    evaluation_path TEXT
   );
 `);
 

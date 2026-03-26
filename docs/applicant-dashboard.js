@@ -2,13 +2,11 @@ const nameSpan = document.getElementById("name");
 const studentIDSpan = document.getElementById("studentID");
 const provisionalStatusSpan = document.getElementById("provisionalStatus");
 const finalStatusSpan = document.getElementById("finalStatus");
-const reportStatusSpan = document.getElementById("reportStatus");
-const evaluationStatusSpan = document.getElementById("evaluationStatus");
-const deadlineSpan = document.getElementById("deadline");
 const message = document.getElementById("message");
-const logoutBtn = document.getElementById("logoutBtn");
 const uploadReportBtn = document.getElementById("uploadBtn");
 const reportFileInput = document.getElementById("reportFile");
+const logoutBtn = document.getElementById("logoutBtn");
+const reportsTableBody = document.getElementById("reportsTableBody");
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -30,9 +28,35 @@ async function loadDashboard() {
       studentIDSpan.textContent = data.studentID || "-";
       provisionalStatusSpan.textContent = data.provisional_status || "-";
       finalStatusSpan.textContent = data.final_status || "-";
-      reportStatusSpan.textContent = data.report_status || "-";
-      evaluationStatusSpan.textContent = data.evaluation_status || "-";
-      deadlineSpan.textContent = data.deadline || "-";
+
+      // Populate reports table
+      reportsTableBody.innerHTML = "";
+      const reportStatus = data.report_status || "Not Submitted";
+      const evaluationStatus = data.evaluation_status || "Not Evaluated";
+      const reportFilename = data.report_filename || null;
+      const submittedAt = data.report_uploaded_at || "-";
+      const deadline = data.deadline || "-";
+
+      if (reportStatus !== "Not Submitted") {
+        const row = document.createElement("tr");
+        row.style.borderBottom = "1px solid #ddd";
+        
+        const filenameCell = reportFilename 
+          ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
+          : "-";
+        
+        row.innerHTML = `
+          <td style="padding: 8px;">${reportStatus}</td>
+          <td style="padding: 8px;">${filenameCell}</td>
+          <td style="padding: 8px;">${submittedAt}</td>
+          <td style="padding: 8px;">${deadline}</td>
+          <td style="padding: 8px;">${evaluationStatus}</td>
+        `;
+        reportsTableBody.appendChild(row);
+      } else {
+        reportsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 10px;">No report submitted yet</td></tr>`;
+      }
+      
     } else {
       showMessage(data.error || "Failed to load dashboard.", "error");
     }
@@ -46,6 +70,11 @@ uploadReportBtn.addEventListener("click", async () => {
 
   if (!file) {
     showMessage("No file selected.", "error");
+    return;
+  }
+    
+  if (file.size === 0) {
+    showMessage("Selected file is empty. Please choose a non-empty PDF", "error");
     return;
   }
 

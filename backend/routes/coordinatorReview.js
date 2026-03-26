@@ -8,7 +8,28 @@ const requireCoordinator = require("../middleware/requireCoordinator");
 
 // GET /applicants - coordinator only
 router.get("/applicants", requireAuth, requireCoordinator, (req, res) => {
-  const applicants = db.prepare("SELECT * FROM applicants").all();
+  const applicants = db.prepare(`
+    SELECT
+      a.id,
+      a.name,
+      a.studentID,
+      a.email,
+      a.provisional_status,
+      a.final_status,
+      a.supervisor,
+      COALESCE(r.report_status, 'Not Submitted') AS report_status,
+      COALESCE(r.evaluation_status, 'Not Evaluated') AS evaluation_status,
+      r.deadline,
+      r.report_filename,
+      r.report_path,
+      r.report_uploaded,
+      r.report_uploaded_at,
+      r.evaluation_filename,
+      r.evaluation_path
+    FROM applicants a
+    LEFT JOIN reports r ON a.studentID = r.studentID
+  `).all();
+
   return res.status(200).json(applicants);
 });
 
@@ -120,6 +141,11 @@ router.post("/applicants/:id/create-account", requireAuth, requireCoordinator, (
     message: "Applicant account created successfully",
     username: applicant.studentID
   });
+});
+
+// Back button route after report review
+router.post("/back", requireAuth, requireCoordinator, (req, res) => {
+  return res.status(200).json({ message: "Back to coordinator dashboard" });
 });
 
 module.exports = router;

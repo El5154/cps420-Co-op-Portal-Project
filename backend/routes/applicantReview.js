@@ -13,15 +13,18 @@ router.get("/applicant/dashboard", requireAuth, (req, res) => {
 
   const applicant = db.prepare(`
     SELECT
-      name,
-      studentID,
-      provisional_status,
-      final_status,
-      report_status,
-      evaluation_status,
-      deadline
-    FROM applicants
-    WHERE studentID = ?
+      a.name,
+      a.studentID,
+      a.provisional_status,
+      a.final_status,
+      r.report_status,
+      r.report_filename,
+      r.report_uploaded_at,
+      r.evaluation_status,
+      r.deadline
+    FROM applicants a
+    LEFT JOIN reports r ON a.studentID = r.studentID
+    WHERE a.studentID = ?
   `).get(studentID);
 
   if (!applicant) {

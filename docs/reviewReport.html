@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Review Report</title>
+  <link rel="stylesheet" href="reviewReport.css" />
+</head>
+<body>
+    <h1>Review Report</h1>
+    
+    <div id="message" class="message"></div>
+    
+    <section>
+        <h2>Applicant Information</h2>
+        <p><strong>Name:</strong> <span id="name">-</span></p>
+        <p><strong>Student ID:</strong> <span id="studentID">-</span></p>
+    </section>
+    
+    <section>
+        <h2>Report Details</h2>
+        <table id="reportDetailsTable" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid #333;">
+              <th style="padding: 8px; text-align: left;">Report Status</th>
+              <th style="padding: 8px; text-align: left;">Filename</th>
+              <th style="padding: 8px; text-align: left;">Submitted At</th>
+              <th style="padding: 8px; text-align: left;">Deadline</th>
+              <th style="padding: 8px; text-align: left;">Evaluation Status</th>
+            </tr>
+          </thead>
+          <tbody id="reportDetailsTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 10px;">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+    </section>
+    
+    <button id="backBtn">Back to Dashboard</button>
+    
+    <script src="config.js"></script>
+    <script src="reviewReport.js"></script>
+</body>
+</html>

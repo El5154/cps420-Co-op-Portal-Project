@@ -7,7 +7,7 @@ const loginRoutes = require("./routes/login");
 const coordinatorReviewRoutes = require("./routes/coordinatorReview");
 const applicantReviewRoutes = require("./routes/applicantReview");
 const uploadReportRoutes = require("./routes/uploadReport");
-const requireAuth = require("./middleware/requireAuth");
+const reviewReportRoutes = require("./routes/reviewReport");
 
 const app = express();
 
@@ -41,6 +41,7 @@ app.use(loginRoutes);
 app.use(coordinatorReviewRoutes);
 app.use(applicantReviewRoutes);
 app.use(uploadReportRoutes);
+app.use(reviewReportRoutes);  
 
 app.get("/", (req, res) => {
   res.status(200).send("Server is running");

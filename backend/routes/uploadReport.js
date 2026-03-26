@@ -44,9 +44,22 @@ router.post("/uploadReport", requireAuth, (req, res) => {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    if (req.file.size === 0) {
+      return res.status(400).json({ error: "Uploaded file is empty" });
+    }
+
     const tempPath = req.file.path;
     const finalFilename = `${req.session.user.studentID}_report.pdf`;
     const targetPath = path.join(uploadDir, finalFilename);
+
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    };
+    const timestamp = new Date().toLocaleString('en-US', options);
 
     fs.rename(tempPath, targetPath, (err) => {
       if (err) {
@@ -54,7 +67,7 @@ router.post("/uploadReport", requireAuth, (req, res) => {
       }
 
       const result = db.prepare(`
-        UPDATE applicants
+        UPDATE reports
         SET report_status = ?,
             report_filename = ?,
             report_path = ?,
@@ -65,7 +78,7 @@ router.post("/uploadReport", requireAuth, (req, res) => {
         "Submitted",
         finalFilename,
         targetPath,
-        new Date().toISOString(),
+        timestamp,
         req.session.user.studentID
       );
 

@@ -29,40 +29,40 @@ beforeAll(() => {
 beforeEach(() => {
   // clear tables before each test
   db.prepare("DELETE FROM applicants").run();
+  db.prepare("DELETE FROM reports").run();
   db.prepare("DELETE FROM users").run();
 
   // insert applicant row
-  db.prepare(`
+db.prepare(`
     INSERT INTO applicants (
       name,
       studentID,
       email,
       provisional_status,
       final_status,
-      report_status,
-      evaluation_status,
-      deadline,
-      report_filename,
-      report_path,
-      report_uploaded,
-      report_uploaded_at,
-      evaluation_filename,
-      evaluation_path
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      report_status
+    ) VALUES (?, ?, ?, ?, ?, ?)
   `).run(
     "Test Applicant",
     "500123456",
     "test@torontomu.ca",
     "Pending",
     "Pending",
+    "Not Submitted"
+  );
+
+  // insert reports row
+  db.prepare(`
+    INSERT INTO reports (
+      studentID,
+      report_status,
+      evaluation_status,
+      deadline
+    ) VALUES (?, ?, ?, ?)
+  `).run(
+    "500123456",
     "Not Submitted",
     "Not Evaluated",
-    null,
-    null,
-    null,
-    0,
-    null,
-    null,
     null
   );
 
