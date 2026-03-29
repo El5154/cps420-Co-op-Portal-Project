@@ -1,138 +1,142 @@
 const request = require("supertest");
 const app = require("../app");
-const { resetDatabase, db } = require("./testUtils");
+const { db, resetDatabase } = require("./testUtils");
 
-describe("Registration + Student Validation", () => {
+describe("Registration", () => {
   beforeEach(() => {
     resetDatabase();
   });
 
-  test("add_applicant", async () => {
-    const res = await request(app)
-      .post("/register")
-      .send({
-        name: "Eric Liu",
-        studentID: "501111111",
-        email: "eric@torontomu.ca"
-      });
+  test("register_success", async () => {
+    const res = await request(app).post("/register").send({
+      name: "Eric Liu",
+      studentID: "501234567",
+      email: "eric@torontomu.ca",
+      password: "pass123"
+    });
 
-    expect(res.status).toBe(201);
+    expect(res.statusCode).toBe(201);
     expect(res.body.message).toBe("Applicant registered successfully");
 
     const applicant = db.prepare(
       "SELECT * FROM applicants WHERE studentID = ?"
-    ).get("501111111");
+    ).get("501234567");
+
+    const user = db.prepare(
+      "SELECT * FROM users WHERE username = ?"
+    ).get("501234567");
 
     expect(applicant).toBeTruthy();
+    expect(user).toBeTruthy();
+    expect(user.role).toBe("applicant");
   });
 
-  test("add_invalid_applicant", async () => {
-    const res = await request(app)
-      .post("/register")
-      .send({
-        name: "Eric Liu",
-        studentID: "123912",
-        email: "eric@gmail.ca"
-      });
-
-    expect(res.status).toBe(400);
-  });
-
-  test("test_duplicate_id", async () => {
-    await request(app).post("/register").send({
-      name: "First User",
-      studentID: "501111111",
-      email: "first@torontomu.ca"
-    });
-
+  test("register_missing_field", async () => {
     const res = await request(app).post("/register").send({
-      name: "Second User",
-      studentID: "501111111",
-      email: "second@torontomu.ca"
+      name: "Eric Liu",
+      studentID: "501234567",
+      email: "eric@torontomu.ca"
     });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Student ID or email already exists");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("All fields are required");
   });
 
-  test("test_duplicate_email", async () => {
-    await request(app).post("/register").send({
-      name: "First User",
-      studentID: "501111111",
-      email: "same@torontomu.ca"
-    });
-
+  test("register_invalid_student_id_short", async () => {
     const res = await request(app).post("/register").send({
-      name: "Second User",
-      studentID: "502222222",
-      email: "same@torontomu.ca"
-    });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Student ID or email already exists");
-  });
-
-  test("valid_student_id", async () => {
-    const res = await request(app).post("/register").send({
-      name: "Valid Student",
-      studentID: "123456789",
-      email: "valid@torontomu.ca"
-    });
-
-    expect(res.status).toBe(201);
-  });
-
-  test("invalid_student_id_short", async () => {
-    const res = await request(app).post("/register").send({
-      name: "Short ID",
+      name: "Eric Liu",
       studentID: "12345678",
-      email: "short@torontomu.ca"
+      email: "eric@torontomu.ca",
+      password: "pass123"
     });
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Student ID must be exactly 9 digits");
   });
 
-  test("invalid_student_id_long", async () => {
+  test("register_invalid_student_id_long", async () => {
     const res = await request(app).post("/register").send({
-      name: "Long ID",
+      name: "Eric Liu",
       studentID: "1234567890",
-      email: "long@torontomu.ca"
+      email: "eric@torontomu.ca",
+      password: "pass123"
     });
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Student ID must be exactly 9 digits");
   });
 
-  test("invalid_student_id_letters", async () => {
+  test("register_invalid_student_id_letters", async () => {
     const res = await request(app).post("/register").send({
-      name: "Letter ID",
+      name: "Eric Liu",
       studentID: "123A5B89C",
-      email: "letters@torontomu.ca"
+      email: "eric@torontomu.ca",
+      password: "pass123"
     });
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Student ID must be exactly 9 digits");
   });
 
-  test("invalid_student_id_special_characters", async () => {
+  test("register_invalid_email_domain", async () => {
     const res = await request(app).post("/register").send({
-      name: "Special ID",
-      studentID: "12$%56789",
-      email: "special@torontomu.ca"
+      name: "Eric Liu",
+      studentID: "501234567",
+      email: "eric@gmail.com",
+      password: "pass123"
     });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Student ID must be exactly 9 digits");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Email must end with @torontomu.ca");
   });
 
-  test("valid_email_domain", async () => {
+  test("register_short_password", async () => {
     const res = await request(app).post("/register").send({
-      name: "TMU Student",
-      studentID: "503333333",
-      email: "student@torontomu.ca"
+      name: "Eric Liu",
+      studentID: "501234567",
+      email: "eric@torontomu.ca",
+      password: "12345"
     });
 
-    expect(res.status).toBe(201);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Password must be at least 6 characters long");
+  });
+
+  test("register_duplicate_student_id", async () => {
+    await request(app).post("/register").send({
+      name: "First User",
+      studentID: "501234567",
+      email: "first@torontomu.ca",
+      password: "pass123"
+    });
+
+    const res = await request(app).post("/register").send({
+      name: "Second User",
+      studentID: "501234567",
+      email: "second@torontomu.ca",
+      password: "pass123"
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Student ID or email already exists");
+  });
+
+  test("register_duplicate_email", async () => {
+    await request(app).post("/register").send({
+      name: "First User",
+      studentID: "501234567",
+      email: "same@torontomu.ca",
+      password: "pass123"
+    });
+
+    const res = await request(app).post("/register").send({
+      name: "Second User",
+      studentID: "509999999",
+      email: "same@torontomu.ca",
+      password: "pass123"
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Student ID or email already exists");
   });
 });

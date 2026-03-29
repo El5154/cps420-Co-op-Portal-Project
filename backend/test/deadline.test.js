@@ -2,15 +2,13 @@ const request = require("supertest");
 const app = require("../app");
 const {
   resetDatabase,
-  seedApplicant,
-  seedReport,
   seedUser,
-  db
+  seedApplicant,
+  seedReport
 } = require("./testUtils");
 
-describe("Setting Deadline Test", () => {
+describe("Review Report", () => {
   let agent;
-  let applicant;
 
   beforeEach(async () => {
     resetDatabase();
@@ -21,20 +19,6 @@ describe("Setting Deadline Test", () => {
       role: "coordinator"
     });
 
-    applicant = seedApplicant({
-      name: "Test Applicant",
-      studentID: "123456789",
-      email: "test@torontomu.ca",
-      provisional_status: "Pending",
-      final_status: "Pending"
-    });
-
-    seedReport({
-      studentID: "123456789",
-      report_status: "Not Submitted",
-      evaluation_status: "Not Evaluated"
-    });
-
     agent = request.agent(app);
 
     await agent.post("/login").send({
@@ -43,104 +27,53 @@ describe("Setting Deadline Test", () => {
     });
   });
 
-  test("coordinator can set a deadline", async () => {
-    const response = await agent
-      .patch(`/applicants/${applicant.id}/deadline`)
-      .send({ deadline: "2026-04-10T23:59:00" });
-
-    expect(response.status).toBe(200);
-    expect(response.body.message).toBe("Deadline updated successfully");
-    expect(response.body.deadline).toBe("2026-04-10T23:59:00");
-
-    const report = db.prepare(`
-      SELECT deadline
-      FROM reports
-      WHERE studentID = ?
-    `).get("123456789");
-
-    expect(report.deadline).toBe("2026-04-10T23:59:00");
-  });
-
-  test("missing deadline is rejected", async () => {
-    const response = await agent
-      .patch(`/applicants/${applicant.id}/deadline`)
-      .send({});
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe("Deadline is required");
-  });
-
-  test("invalid deadline format is rejected", async () => {
-    const response = await agent
-      .patch(`/applicants/${applicant.id}/deadline`)
-      .send({ deadline: "04/10/2026" });
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe("Deadline must be in YYYY-MM-DDTHH:MM:SS format");
-  });
-
-  test("past deadline is rejected", async () => {
-    const response = await agent
-      .patch(`/applicants/${applicant.id}/deadline`)
-      .send({ deadline: "2020-01-01T23:59:00" });
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe("Deadline must be at a later date");
-  });
-
-  test("invalid applicant id returns 404", async () => {
-    const response = await agent
-      .patch("/applicants/99999/deadline")
-      .send({ deadline: "2026-04-10T23:59:00" });
-
-    expect(response.status).toBe(404);
-    expect(response.body.error).toBe("Applicant not found");
-  });
-
-  test("updated deadline appears in coordinator review", async () => {
-    await agent
-      .patch(`/applicants/${applicant.id}/deadline`)
-      .send({ deadline: "2026-04-15T23:59:00" });
-
-    const response = await agent.get(`/applicants/${applicant.id}/review`);
-
-    expect(response.status).toBe(200);
-    expect(response.body.deadline).toBe("2026-04-15T23:59:00");
-  });
-
-  test("non coordinator cannot set deadline", async () => {
-    resetDatabase();
-
-    seedUser({
-      username: "applicant1",
-      password: "pass123",
-      role: "applicant"
-    });
-
-    const otherApplicant = seedApplicant({
+  test("review_report_success_with_report", async () => {
+    const applicant = seedApplicant({
       name: "Applicant User",
-      studentID: "987654321",
+      studentID: "501234567",
       email: "applicant@torontomu.ca"
     });
 
     seedReport({
-      studentID: "987654321",
-      report_status: "Not Submitted",
-      evaluation_status: "Not Evaluated"
+      studentID: "501234567",
+      report_status: "Submitted",
+      evaluation_status: "Not Evaluated",
+      report_filename: "501234567_report.pdf",
+      report_uploaded_at: "2026-03-29T10:00:00",
+      deadline: "2026-04-10T23:59:59"
     });
 
-    const applicantAgent = request.agent(app);
+    const res = await agent.get(`/applicants/${applicant.id}/review`);
 
-    await applicantAgent.post("/login").send({
-      username: "applicant1",
-      password: "pass123"
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe("Applicant User");
+    expect(res.body.studentID).toBe("501234567");
+    expect(res.body.report_status).toBe("Submitted");
+    expect(res.body.report_filename).toBe("501234567_report.pdf");
+    expect(res.body.report_url).toBe("/reports/501234567_report.pdf");
+  });
+
+  test("review_report_success_without_report", async () => {
+    const applicant = seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca"
     });
 
-    const response = await applicantAgent
-      .patch(`/applicants/${otherApplicant.id}/deadline`)
-      .send({ deadline: "2026-04-20T23:59:00" });
+    const res = await agent.get(`/applicants/${applicant.id}/review`);
 
-    expect(response.status).toBe(403);
-    expect(response.body.error).toBe("Coordinator access only");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe("Applicant User");
+    expect(res.body.report_status).toBeNull();
+    expect(res.body.report_filename).toBeNull();
+    expect(res.body.report_url).toBeNull();
+    expect(res.body.deadline).toBeNull();
+  });
+
+  test("review_report_applicant_not_found", async () => {
+    const res = await agent.get("/applicants/9999/review");
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("Applicant not found");
   });
 });

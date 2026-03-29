@@ -1,14 +1,14 @@
 const request = require("supertest");
 const app = require("../app");
 const {
+  db,
   resetDatabase,
-  seedApplicant,
-  seedReport,
   seedUser,
-  db
+  seedApplicant,
+  seedReport
 } = require("./testUtils");
 
-describe("Application finalization + coordinator status", () => {
+describe("Coordinator Review", () => {
   let agent;
 
   beforeEach(async () => {
@@ -28,51 +28,95 @@ describe("Application finalization + coordinator status", () => {
     });
   });
 
-  test("accept_application", async () => {
+  test("get_applicants_success", async () => {
     const applicant = seedApplicant({
       name: "Accepted User",
-      studentID: "501111111",
-      email: "accepted@torontomu.ca"
+      studentID: "501234567",
+      email: "accepted@torontomu.ca",
+      provisional_status: "Accepted",
+      final_status: "Accepted"
+    });
+
+    seedReport({
+      studentID: applicant.studentID,
+      report_status: "Submitted",
+      evaluation_status: "Not Evaluated"
+    });
+
+    const res = await agent.get("/applicants");
+
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].name).toBe("Accepted User");
+    expect(res.body[0].report_status).toBe("Submitted");
+  });
+
+  test("patch_provisional_status_success", async () => {
+    const applicant = seedApplicant({
+      name: "Pending User",
+      studentID: "501234567",
+      email: "pending@torontomu.ca"
     });
 
     const res = await agent
       .patch(`/applicants/${applicant.id}/status`)
       .send({ provisional_status: "Accepted" });
 
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe("Applicant provisional status updated successfully");
 
     const updated = db.prepare(
-      "SELECT * FROM applicants WHERE id = ?"
+      "SELECT provisional_status FROM applicants WHERE id = ?"
     ).get(applicant.id);
 
     expect(updated.provisional_status).toBe("Accepted");
   });
 
-  test("reject_application", async () => {
+  test("patch_provisional_status_missing_value", async () => {
     const applicant = seedApplicant({
-      name: "Rejected User",
-      studentID: "502222222",
-      email: "rejected@torontomu.ca"
+      name: "Pending User",
+      studentID: "501234567",
+      email: "pending@torontomu.ca"
     });
 
     const res = await agent
       .patch(`/applicants/${applicant.id}/status`)
-      .send({ provisional_status: "Rejected" });
+      .send({});
 
-    expect(res.status).toBe(200);
-
-    const updated = db.prepare(
-      "SELECT * FROM applicants WHERE id = ?"
-    ).get(applicant.id);
-
-    expect(updated.provisional_status).toBe("Rejected");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("provisional_status is required");
   });
 
-  test("decision_finalization", async () => {
+  test("patch_provisional_status_invalid_value", async () => {
+    const applicant = seedApplicant({
+      name: "Pending User",
+      studentID: "501234567",
+      email: "pending@torontomu.ca"
+    });
+
+    const res = await agent
+      .patch(`/applicants/${applicant.id}/status`)
+      .send({ provisional_status: "Pending" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Invalid status value");
+  });
+
+  test("patch_provisional_status_applicant_not_found", async () => {
+    const res = await agent
+      .patch("/applicants/9999/status")
+      .send({ provisional_status: "Accepted" });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe("Applicant not found");
+  });
+
+  test("patch_provisional_status_rejected_after_finalization", async () => {
     const applicant = seedApplicant({
       name: "Finalized User",
-      studentID: "503333333",
-      email: "final@torontomu.ca",
+      studentID: "501234567",
+      email: "finalized@torontomu.ca",
       provisional_status: "Accepted",
       final_status: "Accepted"
     });
@@ -81,82 +125,78 @@ describe("Application finalization + coordinator status", () => {
       .patch(`/applicants/${applicant.id}/status`)
       .send({ provisional_status: "Rejected" });
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Cannot change provisional status after finalization");
+  });
 
-    const unchanged = db.prepare(
-      "SELECT * FROM applicants WHERE id = ?"
+  test("finalize_success_after_provisional_accept", async () => {
+    const applicant = seedApplicant({
+      name: "Accepted User",
+      studentID: "501234567",
+      email: "accepted@torontomu.ca",
+      provisional_status: "Accepted",
+      final_status: "Pending"
+    });
+
+    const res = await agent.patch(`/applicants/${applicant.id}/finalize`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe("Applicant final status updated successfully");
+
+    const updated = db.prepare(
+      "SELECT final_status FROM applicants WHERE id = ?"
     ).get(applicant.id);
 
-    expect(unchanged.final_status).toBe("Accepted");
-    expect(unchanged.provisional_status).toBe("Accepted");
+    expect(updated.final_status).toBe("Accepted");
   });
 
-  test("view_conditional_status_coordinator", async () => {
-    seedApplicant({
-      name: "Accepted User",
-      studentID: "501111111",
-      email: "accepted@torontomu.ca",
-      provisional_status: "Accepted"
-    });
-
-    seedApplicant({
+  test("finalize_success_after_provisional_reject", async () => {
+    const applicant = seedApplicant({
       name: "Rejected User",
-      studentID: "502222222",
+      studentID: "501234568",
       email: "rejected@torontomu.ca",
-      provisional_status: "Rejected"
+      provisional_status: "Rejected",
+      final_status: "Pending"
     });
 
-    seedApplicant({
-      name: "Pending User",
-      studentID: "503333333",
-      email: "pending@torontomu.ca",
-      provisional_status: "Pending"
-    });
+    const res = await agent.patch(`/applicants/${applicant.id}/finalize`);
 
-    seedReport({ studentID: "501111111" });
-    seedReport({ studentID: "502222222" });
-    seedReport({ studentID: "503333333" });
+    expect(res.statusCode).toBe(200);
 
-    const res = await agent.get("/applicants");
+    const updated = db.prepare(
+      "SELECT final_status FROM applicants WHERE id = ?"
+    ).get(applicant.id);
 
-    expect(res.status).toBe(200);
-
-    const accepted = res.body.find(a => a.studentID === "501111111");
-    const rejected = res.body.find(a => a.studentID === "502222222");
-    const pending = res.body.find(a => a.studentID === "503333333");
-
-    expect(accepted.provisional_status).toBe("Accepted");
-    expect(rejected.provisional_status).toBe("Rejected");
-    expect(pending.provisional_status).toBe("Pending");
+    expect(updated.final_status).toBe("Rejected");
   });
 
-  test("view_final_status_coordinator", async () => {
-    seedApplicant({
-      name: "Accepted Final",
-      studentID: "504444444",
-      email: "acceptedfinal@torontomu.ca",
+  test("finalize_reject_if_provisional_pending", async () => {
+    const applicant = seedApplicant({
+      name: "Pending User",
+      studentID: "501234567",
+      email: "pending@torontomu.ca",
+      provisional_status: "Pending",
+      final_status: "Pending"
+    });
+
+    const res = await agent.patch(`/applicants/${applicant.id}/finalize`);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Provisional decision must be made before finalization");
+  });
+
+  test("finalize_reject_if_already_finalized", async () => {
+    const applicant = seedApplicant({
+      name: "Finalized User",
+      studentID: "501234567",
+      email: "finalized@torontomu.ca",
+      provisional_status: "Accepted",
       final_status: "Accepted"
     });
 
-    seedApplicant({
-      name: "Rejected Final",
-      studentID: "505555555",
-      email: "rejectedfinal@torontomu.ca",
-      final_status: "Rejected"
-    });
+    const res = await agent.patch(`/applicants/${applicant.id}/finalize`);
 
-    seedReport({ studentID: "504444444" });
-    seedReport({ studentID: "505555555" });
-
-    const res = await agent.get("/applicants");
-
-    expect(res.status).toBe(200);
-
-    const accepted = res.body.find(a => a.studentID === "504444444");
-    const rejected = res.body.find(a => a.studentID === "505555555");
-
-    expect(accepted.final_status).toBe("Accepted");
-    expect(rejected.final_status).toBe("Rejected");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Applicant decision has already been finalized");
   });
 });

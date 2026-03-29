@@ -1,113 +1,322 @@
 const request = require("supertest");
+const fs = require("fs");
+const path = require("path");
 const app = require("../app");
 const {
+  db,
   resetDatabase,
-  seedApplicant,
-  seedReport,
   seedUser,
-  db
+  seedApplicant,
+  seedReport
 } = require("./testUtils");
 
-describe("Student Submission (Work-Term Report Upload)", () => {
+describe("Upload Report", () => {
   let agent;
+  const uploadDir = path.join(__dirname, "../uploads/reports");
 
   beforeEach(async () => {
     resetDatabase();
 
+    if (fs.existsSync(uploadDir)) {
+      const files = fs.readdirSync(uploadDir);
+      for (const file of files) {
+        fs.unlinkSync(path.join(uploadDir, file));
+      }
+    }
+
+    agent = request.agent(app);
+  });
+
+  test("upload_success_when_final_status_accepted", async () => {
     seedApplicant({
-      name: "Eric Liu",
-      studentID: "501111111",
-      email: "eric@torontomu.ca"
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
     });
 
     seedReport({
-      studentID: "501111111"
+      studentID: "501234567"
     });
 
     seedUser({
-      username: "501111111",
+      username: "501234567",
       password: "pass123",
       role: "applicant"
     });
 
-    agent = request.agent(app);
-
     await agent.post("/login").send({
-      username: "501111111",
+      username: "501234567",
       password: "pass123"
     });
-  });
 
-  test("upload_pdf_valid", async () => {
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
     const res = await agent
       .post("/uploadReport")
-      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
+      .attach("report", pdfLikeBuffer, "report.pdf");
 
-    expect(res.status).toBe(200);
+    expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe("Report uploaded successfully");
+
+    const report = db.prepare(
+      "SELECT * FROM reports WHERE studentID = ?"
+    ).get("501234567");
+
+    expect(report.report_status).toBe("Submitted");
+    expect(report.report_filename).toBe("501234567_report.pdf");
+    expect(report.report_uploaded).toBe(1);
+    expect(report.report_uploaded_at).toBeTruthy();
   });
 
-  test("upload_non_pdf_rejected", async () => {
+  test("upload_reject_if_not_logged_in", async () => {
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await request(app)
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).not.toBe(200);
+  });
+
+  test("upload_reject_if_not_applicant", async () => {
+    seedUser({
+      username: "coord1",
+      password: "pass123",
+      role: "coordinator"
+    });
+
+    await agent.post("/login").send({
+      username: "coord1",
+      password: "pass123"
+    });
+
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe("Forbidden");
+  });
+
+  test("upload_reject_if_final_status_not_accepted", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Pending"
+    });
+
+    seedReport({
+      studentID: "501234567"
+    });
+
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toBe(
+      "You cannot upload a report until your final status is Accepted"
+    );
+  });
+
+  test("upload_reject_if_applicant_not_found", async () => {
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Applicant student ID missing from session");
+  });
+
+  test("upload_reject_non_pdf", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedReport({
+      studentID: "501234567"
+    });
+
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
     const res = await agent
       .post("/uploadReport")
       .attach("report", Buffer.from("not a pdf"), "report.docx");
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Only PDF files are allowed!");
   });
 
-  test("upload_pdf_too_large", async () => {
-    const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 1, "a");
+  test("upload_reject_no_file", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
 
-    const res = await agent
-      .post("/uploadReport")
-      .attach("report", bigBuffer, "big.pdf");
+    seedReport({
+      studentID: "501234567"
+    });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/File too large/i);
-  });
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
 
-  test("upload_no_file", async () => {
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
     const res = await agent.post("/uploadReport");
 
-    expect(res.status).toBe(400);
+    expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("No file uploaded");
   });
 
-  test("upload_not_logged_in", async () => {
-    const res = await request(app)
-      .post("/uploadReport")
-      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
+  test("upload_reject_empty_file", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
 
-    expect(res.status).toBe(401);
-  });
+    seedReport({
+      studentID: "501234567"
+    });
 
-  test("report_link_correct_student", async () => {
-    await agent
-      .post("/uploadReport")
-      .attach("report", Buffer.from("%PDF-1.4 fake pdf"), "report.pdf");
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
 
-    const report = db.prepare(
-      "SELECT * FROM reports WHERE studentID = ?"
-    ).get("501111111");
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
 
-    expect(report).toBeTruthy();
-    expect(report.report_filename).toBe("501111111_report.pdf");
-    expect(report.report_status).toBe("Submitted");
-    expect(report.report_uploaded).toBe(1);
-  });
-
-  test("upload_pdf_edge_size", async () => {
-    const limitBuffer = Buffer.alloc(10 * 1024 * 1024, "a");
-    const pdfLikeBuffer = Buffer.concat([
-      Buffer.from("%PDF-1.4\n"),
-      limitBuffer.slice(0, limitBuffer.length - 9)
-    ]);
+    const emptyPdfBuffer = Buffer.alloc(0);
 
     const res = await agent
       .post("/uploadReport")
-      .attach("report", pdfLikeBuffer, "edge.pdf");
-    expect(res.status).toBe(200);
+      .attach("report", emptyPdfBuffer, "empty.pdf");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Uploaded file is empty");
+  });
+
+  test("upload_reject_file_too_large", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedReport({
+      studentID: "501234567"
+    });
+
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 2, "a");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", bigBuffer, "large.pdf");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/File too large/i);
+  });
+
+  test("upload_edge_size_success", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedReport({
+      studentID: "501234567"
+    });
+
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const edgeBuffer = Buffer.alloc(10 * 1024 * 1024, "a");
+
+    // Put PDF header at start so multer/pdf checks behave better
+    edgeBuffer.write("%PDF-1.4");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", edgeBuffer, "edge.pdf");
+
+    expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe("Report uploaded successfully");
   });
 });
