@@ -4,6 +4,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const requireEligibleForReportUpload = require("../middleware/requireEligibleForReportUpload");
 const requireAuth = require("../middleware/requireAuth");
 const db = require("../config/applicants");
 
@@ -26,7 +27,7 @@ const upload = multer({
   }
 }).single("report");
 
-router.post("/uploadReport", requireAuth, (req, res) => {
+router.post("/uploadReport", requireAuth, requireEligibleForReportUpload, (req, res) => {
   if (req.session.user.role !== "applicant") {
     return res.status(403).json({ error: "Forbidden" });
   }

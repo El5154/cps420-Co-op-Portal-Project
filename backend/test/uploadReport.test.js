@@ -36,7 +36,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -63,10 +64,12 @@ describe("Upload Report", () => {
       "SELECT * FROM reports WHERE studentID = ?"
     ).get("501234567");
 
+    expect(report).toBeTruthy();
     expect(report.report_status).toBe("Submitted");
     expect(report.report_filename).toBe("501234567_report.pdf");
     expect(report.report_uploaded).toBe(1);
     expect(report.report_uploaded_at).toBeTruthy();
+    expect(report.report_path).toContain("501234567_report.pdf");
   });
 
   test("upload_reject_if_not_logged_in", async () => {
@@ -101,6 +104,28 @@ describe("Upload Report", () => {
     expect(res.body.error).toBe("Forbidden");
   });
 
+  test("upload_reject_if_studentID_missing_in_session", async () => {
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Applicant student ID missing from session");
+  });
+
   test("upload_reject_if_final_status_not_accepted", async () => {
     seedApplicant({
       name: "Applicant User",
@@ -110,7 +135,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -136,7 +162,48 @@ describe("Upload Report", () => {
     );
   });
 
-  test("upload_reject_if_applicant_not_found", async () => {
+  test("upload_reject_if_reports_row_missing", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedUser({
+      username: "501234567",
+      password: "pass123",
+      role: "applicant"
+    });
+
+    await agent.post("/login").send({
+      username: "501234567",
+      password: "pass123"
+    });
+
+    const pdfLikeBuffer = Buffer.from("%PDF-1.4 test pdf content");
+
+    const res = await agent
+      .post("/uploadReport")
+      .attach("report", pdfLikeBuffer, "report.pdf");
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe("Report record not found");
+  });
+
+  test("upload_reject_if_no_deadline_set", async () => {
+    seedApplicant({
+      name: "Applicant User",
+      studentID: "501234567",
+      email: "applicant@torontomu.ca",
+      final_status: "Accepted"
+    });
+
+    seedReport({
+      studentID: "501234567",
+      deadline: null
+    });
+
     seedUser({
       username: "501234567",
       password: "pass123",
@@ -155,7 +222,7 @@ describe("Upload Report", () => {
       .attach("report", pdfLikeBuffer, "report.pdf");
 
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("Applicant student ID missing from session");
+    expect(res.body.error).toBe("No deadline has been set for this applicant");
   });
 
   test("upload_reject_non_pdf", async () => {
@@ -167,7 +234,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -198,7 +266,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -227,7 +296,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -260,7 +330,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -275,6 +346,7 @@ describe("Upload Report", () => {
     });
 
     const bigBuffer = Buffer.alloc(10 * 1024 * 1024 + 2, "a");
+    bigBuffer.write("%PDF-1.4");
 
     const res = await agent
       .post("/uploadReport")
@@ -293,7 +365,8 @@ describe("Upload Report", () => {
     });
 
     seedReport({
-      studentID: "501234567"
+      studentID: "501234567",
+      deadline: "2099-12-31T23:59:59"
     });
 
     seedUser({
@@ -308,8 +381,6 @@ describe("Upload Report", () => {
     });
 
     const edgeBuffer = Buffer.alloc(10 * 1024 * 1024, "a");
-
-    // Put PDF header at start so multer/pdf checks behave better
     edgeBuffer.write("%PDF-1.4");
 
     const res = await agent
