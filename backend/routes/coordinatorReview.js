@@ -3,11 +3,10 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
 
-const requireAuth = require("../middleware/requireAuth");
 const requireCoordinator = require("../middleware/requireCoordinator");
 
 // GET /applicants - coordinator only
-router.get("/applicants", requireAuth, requireCoordinator, (req, res) => {
+router.get("/applicants", requireCoordinator, (req, res) => {
   const applicants = db.prepare(`
     SELECT
       a.id,
@@ -34,7 +33,7 @@ router.get("/applicants", requireAuth, requireCoordinator, (req, res) => {
 });
 
 // PATCH /applicants/:id/status - set provisional status
-router.patch("/applicants/:id/status", requireAuth, requireCoordinator, (req, res) => {
+router.patch("/applicants/:id/status", requireCoordinator, (req, res) => {
   const { id } = req.params;
   const { provisional_status } = req.body;
 
@@ -70,7 +69,7 @@ router.patch("/applicants/:id/status", requireAuth, requireCoordinator, (req, re
 });
 
 // PATCH /applicants/:id/finalize - finalize decision
-router.patch("/applicants/:id/finalize", requireAuth, requireCoordinator, (req, res) => {
+router.patch("/applicants/:id/finalize", requireCoordinator, (req, res) => {
   const { id } = req.params;
 
   const applicant = db.prepare(
@@ -103,7 +102,7 @@ router.patch("/applicants/:id/finalize", requireAuth, requireCoordinator, (req, 
 });
 
 // Back button route after report review
-router.post("/back", requireAuth, requireCoordinator, (req, res) => {
+router.post("/back", requireCoordinator, (req, res) => {
   return res.status(200).json({ message: "Back to coordinator dashboard" });
 });
 

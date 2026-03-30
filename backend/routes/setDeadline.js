@@ -2,10 +2,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
 
-const requireAuth = require("../middleware/requireAuth");
 const requireCoordinator = require("../middleware/requireCoordinator");
 
-router.patch("/applicants/:id/deadline", requireAuth, requireCoordinator, (req, res) => {
+router.patch("/applicants/:id/deadline", requireCoordinator, (req, res) => {
   const { id } = req.params;
   const { deadline } = req.body;
 
