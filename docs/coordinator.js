@@ -176,21 +176,4 @@ async function createAccount(applicantId) {
   }
 }
 
-logoutBtn.addEventListener("click", async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/logout`, {
-      method: "POST",
-      credentials: "include"
-    });
-
-    if (response.ok) {
-      window.location.href = "login.html";
-    } else {
-      showMessage("Logout failed.", "error");
-    }
-  } catch (error) {
-    showMessage("Could not connect to the server.", "error");
-  }
-});
-
 loadApplicants();

@@ -8,9 +8,9 @@ const setDeadlineBtn = document.getElementById("setDeadline");
 const applicantId = new URLSearchParams(window.location.search).get("applicantId");
 
 function showMessage(text, type) {
-    message.textContent = text;
-    message.className = "message";
-    if (type) message.classList.add(type);
+  message.textContent = text;
+  message.className = "message";
+  if (type) message.classList.add(type);
 }
 
 function formatDateTime(value) {
@@ -38,115 +38,129 @@ function formatDateTime(value) {
   return `${monthNames[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}, ${hour}:${minute} ${ampm}`;
 }
 
+function renderReportRow({
+  reportStatus,
+  reportFilename,
+  formattedSubmittedAt,
+  formattedDeadline,
+  evaluationStatus
+}) {
+  const row = document.createElement("tr");
+
+  const filenameCell =
+    reportStatus !== "Not Submitted" && reportFilename
+      ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
+      : "-";
+
+  const submittedAtCell =
+    reportStatus !== "Not Submitted" && reportFilename
+      ? formattedSubmittedAt
+      : "-";
+
+  row.innerHTML = `
+    <td>${reportStatus}</td>
+    <td>${filenameCell}</td>
+    <td>${submittedAtCell}</td>
+    <td>${formattedDeadline}</td>
+    <td>${evaluationStatus}</td>
+  `;
+
+  reportDetailsTableBody.appendChild(row);
+}
+
 async function loadReviewReport() {
-    try {
-        if (!applicantId) {
-            showMessage("Missing applicant ID", "error");
-            return;
-        }
-
-        const response = await fetch(`${BASE_URL}/applicants/${applicantId}/review`, {
-            method: "GET",
-            credentials: "include"
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            nameSpan.textContent = data.name || "-";
-            studentIDSpan.textContent = data.studentID || "-";
-
-            const formattedDeadline = formatDateTime(data.deadline);
-            const formattedSubmittedAt = formatDateTime(data.report_uploaded_at);
-
-            reportDetailsTableBody.innerHTML = "";
-            const reportStatus = data.report_status || "Not Submitted";
-            const evaluationStatus = data.evaluation_status || "Not Evaluated";
-            const reportFilename = data.report_filename;
-
-            if (reportStatus !== "Not Submitted" && reportFilename) {
-                const row = document.createElement("tr");
-                row.style.borderBottom = "1px solid #ddd";
-
-                row.innerHTML = `
-                    <td style="padding: 8px;">${reportStatus}</td>
-                    <td style="padding: 8px;"><a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a></td>
-                    <td style="padding: 8px;">${formattedSubmittedAt}</td>
-                    <td style="padding: 8px;">${formattedDeadline}</td>
-                    <td style="padding: 8px;">${evaluationStatus}</td>
-                `;
-                reportDetailsTableBody.appendChild(row);
-            } else {
-                reportDetailsTableBody.innerHTML = `
-                    <tr style="border-bottom: 1px solid #ddd;">
-                        <td style="padding: 8px;">${reportStatus}</td>
-                        <td style="padding: 8px;">-</td>
-                        <td style="padding: 8px;">-</td>
-                        <td style="padding: 8px;">${formattedDeadline}</td>
-                        <td style="padding: 8px;">${evaluationStatus}</td>
-                    </tr>
-                `;
-            }
-
-        } else {
-            showMessage(data.error || "Failed to load report review.", "error");
-        }
-
-    } catch (error) {
-        showMessage("Could not connect to the server.", "error");
+  try {
+    if (!applicantId) {
+      showMessage("Missing applicant ID", "error");
+      return;
     }
+
+    const response = await fetch(`${BASE_URL}/applicants/${applicantId}/review`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      nameSpan.textContent = data.name || "-";
+      studentIDSpan.textContent = data.studentID || "-";
+
+      const formattedDeadline = formatDateTime(data.deadline);
+      const formattedSubmittedAt = formatDateTime(data.report_uploaded_at);
+
+      reportDetailsTableBody.innerHTML = "";
+
+      const reportStatus = data.report_status || "Not Submitted";
+      const evaluationStatus = data.evaluation_status || "Not Evaluated";
+      const reportFilename = data.report_filename || null;
+
+      renderReportRow({
+        reportStatus,
+        reportFilename,
+        formattedSubmittedAt,
+        formattedDeadline,
+        evaluationStatus
+      });
+    } else {
+      showMessage(data.error || "Failed to load report review.", "error");
+    }
+  } catch (error) {
+    showMessage("Could not connect to the server.", "error");
+  }
 }
 
 backBtn.addEventListener("click", async () => {
-    try {
-        const response = await fetch(`${BASE_URL}/back`, {
-            method: "POST",
-            credentials: "include"
-        });
+  try {
+    const response = await fetch(`${BASE_URL}/back`, {
+      method: "POST",
+      credentials: "include"
+    });
 
-        if (response.ok) {
-            window.location.href = "coordinator.html";
-        } else {
-            const data = await response.json();
-            showMessage(data.error || "Failed to log out.", "error");
-        }
-    } catch (error) {
-        showMessage("Could not connect to the server.", "error");
+    if (response.ok) {
+      window.location.href = "coordinator.html";
+    } else {
+      const data = await response.json();
+      showMessage(data.error || "Failed to go back.", "error");
     }
+  } catch (error) {
+    showMessage("Could not connect to the server.", "error");
+  }
 });
 
 setDeadlineBtn.addEventListener("click", async () => {
-    const selectedDate = deadlineInput.value;
+  const selectedDate = deadlineInput.value;
 
-    if (!selectedDate) {
-        return showMessage("Please Input a Deadline", "error");
+  if (!selectedDate) {
+    showMessage("Please input a deadline", "error");
+    return;
+  }
+
+  const deadline = `${selectedDate}T23:59:00`;
+
+  try {
+    const res = await fetch(`${BASE_URL}/applicants/${applicantId}/deadline`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({ deadline })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showMessage(data.error || "Failed to set deadline", "error");
+      return;
     }
 
-    const deadline = `${selectedDate}T23:59:00`;
-
-    try {
-        const res = await fetch(`${BASE_URL}/applicants/${applicantId}/deadline`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify({ deadline })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            return showMessage(data.error || "Failed to Set Deadline", "error");
-        }
-
-        showMessage("Deadline Set Successfully", "success");
-        deadlineInput.value = "";
-        await loadReviewReport();
-    } catch (err) {
-        showMessage("Deadline Failed to Set", "error");
-    }
+    showMessage("Deadline set successfully", "success");
+    deadlineInput.value = "";
+    await loadReviewReport();
+  } catch (err) {
+    showMessage("Deadline failed to set", "error");
+  }
 });
 
-// Load report review info on page load
 loadReviewReport();

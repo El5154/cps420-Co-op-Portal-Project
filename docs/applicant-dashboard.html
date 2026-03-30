@@ -2,56 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Applicant Dashboard</title>
   <link rel="stylesheet" href="applicant-dashboard.css" />
 </head>
 <body>
-  <h1>Applicant Dashboard</h1>
+  <div class="dashboard-container">
+    <h1>Applicant Dashboard</h1>
 
-  <div id="message" class="message"></div>
+    <div id="message" class="message"></div>
 
-  <section>
-    <h2>Profile</h2>
-    <p><strong>Name:</strong> <span id="name">-</span></p>
-    <p><strong>Student ID:</strong> <span id="studentID">-</span></p>
-  </section>
+    <section>
+      <h2>Profile</h2>
+      <p><strong>Name:</strong> <span id="name">-</span></p>
+      <p><strong>Student ID:</strong> <span id="studentID">-</span></p>
+    </section>
 
-  <section>
-    <h2>Application Status</h2>
-    <p><strong>Provisional Status:</strong> <span id="provisionalStatus">-</span></p>
-    <p><strong>Final Status:</strong> <span id="finalStatus">-</span></p>
-  </section>
+    <section>
+      <h2>Application Status</h2>
+      <p><strong>Provisional Status:</strong> <span id="provisionalStatus">-</span></p>
+      <p><strong>Final Status:</strong> <span id="finalStatus">-</span></p>
+    </section>
 
-  <section>
-    <h2>Submissions</h2>
-    <table id="reportsTable" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="border-bottom: 2px solid #333;">
-          <th style="padding: 8px; text-align: left;">Report Status</th>
-          <th style="padding: 8px; text-align: left;">Filename</th>
-          <th style="padding: 8px; text-align: left;">Submitted At</th>
-          <th style="padding: 8px; text-align: left;">Deadline</th>
-          <th style="padding: 8px; text-align: left;">Evaluation Status</th>
-        </tr>
-      </thead>
-      <tbody id="reportsTableBody">
-        <tr>
-          <td colspan="5" style="text-align: center; padding: 10px;">No report submitted yet</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+    <section>
+      <h2>Submissions</h2>
+      <table id="reportsTable">
+        <thead>
+          <tr>
+            <th>Report Status</th>
+            <th>Filename</th>
+            <th>Submitted At</th>
+            <th>Deadline</th>
+            <th>Evaluation Status</th>
+          </tr>
+        </thead>
+        <tbody id="reportsTableBody">
+          <tr>
+            <td colspan="5" class="empty-cell">No report submitted yet</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
-  <section>
-    <h2>Report Submission</h2>
-    <input type="file" id="reportFile" />
-    <button id="uploadBtn">Upload Report</button>
-    <p id="uploadMessage"></p>
-  </section>
+    <section>
+      <h2>Report Submission</h2>
+      <input type="file" id="reportFile" />
+      <button id="uploadBtn">Upload Report</button>
+      <p id="uploadMessage" class="upload-message"></p>
+    </section>
 
-  <button id="logoutBtn">Logout</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
 
   <script src="config.js"></script>
+  <script src="logout.js"></script>
   <script src="applicant-dashboard.js"></script>
 </body>
 </html>

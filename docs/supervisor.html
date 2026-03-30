@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supervisor Dashboard</title>
+    <link rel="stylesheet" href="supervisor.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Supervisor Dashboard</h1>
+        <button id="logoutBtn">Logout</button>
+      </div>
+
+      <div id="message" class="message"></div>
+
+      <section>
+        <h2>Assigned Students</h2>
+        <table id="studentTable">
+          <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Student ID</th>
+              <th>Provisional Status</th>
+              <th>Final Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="logout.js"></script>
+    <script src="supervisor.js"></script>
+  </body>
+</html>

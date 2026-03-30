@@ -9,6 +9,9 @@ body {
   background: #f4f6f8;
   color: #222;
   padding: 40px 20px;
+}
+
+.dashboard-container {
   max-width: 900px;
   margin: 0 auto;
 }
@@ -70,6 +73,30 @@ span {
   border: 1px solid #ef9a9a;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  border-bottom: 2px solid #333;
+}
+
+th {
+  padding: 8px;
+  text-align: left;
+}
+
+td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.empty-cell {
+  text-align: center;
+  padding: 10px;
+}
+
 input[type="file"] {
   display: block;
   margin-bottom: 15px;
@@ -94,6 +121,11 @@ button:hover {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.upload-message {
+  margin-top: 10px;
+  color: #b71c1c;
 }
 
 #logoutBtn {

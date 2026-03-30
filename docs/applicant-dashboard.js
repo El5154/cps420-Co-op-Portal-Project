@@ -29,16 +29,40 @@ function formatDateTime(value) {
   });
 }
 
-function disableUpload(message) {
+function disableUpload(messageText) {
   uploadBtn.disabled = true;
   reportFile.disabled = true;
-  uploadMessage.textContent = message;
+  uploadMessage.textContent = messageText;
 }
 
 function enableUpload() {
   uploadBtn.disabled = false;
   reportFile.disabled = false;
   uploadMessage.textContent = "";
+}
+
+function renderSubmissionRow({
+  reportStatus,
+  reportFilename,
+  submittedAt,
+  deadline,
+  evaluationStatus
+}) {
+  const row = document.createElement("tr");
+
+  const filenameCell = reportFilename
+    ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
+    : "-";
+
+  row.innerHTML = `
+    <td>${reportStatus}</td>
+    <td>${filenameCell}</td>
+    <td>${submittedAt}</td>
+    <td>${deadline}</td>
+    <td>${evaluationStatus}</td>
+  `;
+
+  reportsTableBody.appendChild(row);
 }
 
 async function loadDashboard() {
@@ -57,39 +81,20 @@ async function loadDashboard() {
       finalStatusSpan.textContent = data.final_status || "-";
 
       reportsTableBody.innerHTML = "";
+
       const reportStatus = data.report_status || "Not Submitted";
       const evaluationStatus = data.evaluation_status || "Not Evaluated";
       const reportFilename = data.report_filename || null;
       const submittedAt = formatDateTime(data.report_uploaded_at);
       const deadline = formatDateTime(data.deadline);
 
-      if (reportStatus !== "Not Submitted") {
-        const row = document.createElement("tr");
-        row.style.borderBottom = "1px solid #ddd";
-
-        const filenameCell = reportFilename
-          ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
-          : "-";
-
-        row.innerHTML = `
-          <td style="padding: 8px;">${reportStatus}</td>
-          <td style="padding: 8px;">${filenameCell}</td>
-          <td style="padding: 8px;">${submittedAt}</td>
-          <td style="padding: 8px;">${deadline}</td>
-          <td style="padding: 8px;">${evaluationStatus}</td>
-        `;
-        reportsTableBody.appendChild(row);
-      } else {
-        reportsTableBody.innerHTML = `
-          <tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 8px;">${reportStatus}</td>
-            <td style="padding: 8px;">-</td>
-            <td style="padding: 8px;">-</td>
-            <td style="padding: 8px;">${deadline}</td>
-            <td style="padding: 8px;">${evaluationStatus}</td>
-          </tr>
-        `;
-      }
+      renderSubmissionRow({
+        reportStatus,
+        reportFilename: reportStatus !== "Not Submitted" ? reportFilename : null,
+        submittedAt: reportStatus !== "Not Submitted" ? submittedAt : "-",
+        deadline,
+        evaluationStatus
+      });
 
       const rawDeadline = data.deadline;
       const finalStatus = data.final_status;
@@ -118,7 +123,6 @@ async function loadDashboard() {
       }
 
       enableUpload();
-
     } else {
       disableUpload("Could not verify upload eligibility.");
       showMessage(data.error || "Failed to load dashboard.", "error");
@@ -160,23 +164,6 @@ uploadBtn.addEventListener("click", async () => {
       loadDashboard();
     } else {
       showMessage(data.error || "Failed to upload report.", "error");
-    }
-  } catch (error) {
-    showMessage("Could not connect to the server.", "error");
-  }
-});
-
-logoutBtn.addEventListener("click", async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/logout`, {
-      method: "POST",
-      credentials: "include"
-    });
-
-    if (response.ok) {
-      window.location.href = "login.html";
-    } else {
-      showMessage("Logout failed.", "error");
     }
   } catch (error) {
     showMessage("Could not connect to the server.", "error");
