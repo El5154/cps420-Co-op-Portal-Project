@@ -101,6 +101,30 @@ router.patch("/applicants/:id/finalize", requireCoordinator, (req, res) => {
   });
 });
 
+router.patch("/applicants/:id/supervisor", requireCoordinator, (req, res) => {
+  const { id } = req.params;
+  const { supervisor } = req.body;
+
+  if (!supervisor) {
+    return res.status(400).json({ error: "Supervisor is required"});
+  }
+
+  const applicant = db.prepare(`
+    SELECT * FROM applicants WHERE id = ?
+  `).get(id);
+
+  if (!applicant) {
+    return res.status(400).json({ error: "Applicant not found"});
+  }
+
+  db.prepare(`
+    UPDATE applicants SET supervisor = ?
+    WHERE id = ?
+  `).run(supervisor, id);
+
+  return res.status(200).json({ message: "Supervisor assigned successfully"});
+});
+
 // Back button route after report review
 router.post("/back", requireCoordinator, (req, res) => {
   return res.status(200).json({ message: "Back to coordinator dashboard" });
