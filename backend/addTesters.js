@@ -15,23 +15,25 @@ const insertApplicant = db.prepare(`
 `);
 
 const insertReport = db.prepare(`
-  INSERT INTO reports (studentID, report_status, evaluation_status, deadline)
-  VALUES (?, ?, ?, ?)
+  INSERT INTO reports (studentID, evaluation_status, report_status)
+  VALUES (?, ?, ?)
 `);
 
+insertUser.run("123456789", "password", "applicant");
 insertUser.run("coordinator", "password", "coordinator");
-
 insertUser.run("supervisor", "password", "supervisor");
 
-const applicants = [
-  ["Alice Chen", "123456789", "alice@torontomu.ca", "Pending", "Pending", "Not Submitted", "Not Evaluated", "April 2, 2026 at 11:59 PM"],
-  ["Bob Singh", "234567890", "bob@torontomu.ca", "Accepted", "Pending", "Not Submitted", "Not Evaluated", "April 2, 2026 at 11:59 PM"],
-  ["Carol Nguyen", "345678901", "carol@torontomu.ca", "Rejected", "Pending", "Not Submitted", "Not Evaluated", "April 2, 2026 at 11:59 PM"],
-  ["David Kim", "456789012", "david@torontomu.ca", "Accepted", "Accepted", "Not Submitted", "Not Evaluated", "April 2, 2026 at 11:59 PM"],
-  ["Emma Patel", "567890123", "emma@torontomu.ca", "Rejected", "Rejected", "Not Submitted", "Not Evaluated", "April 2, 2026 at 11:59 PM"]
-];
+const supervisorUser = db.prepare(`
+  SELECT id FROM users WHERE username = ?
+`).get("supervisor");
 
-for (const applicant of applicants) {
-  insertApplicant.run(applicant[0], applicant[1], applicant[2], applicant[3], applicant[4], null);
-  insertReport.run(applicant[1], applicant[5], applicant[6], applicant[7]);
-}
+insertApplicant.run(
+  "student",
+  "123456789",
+  "student@torontomu.ca",
+  "Pending",
+  "Pending",
+  supervisorUser.id
+);
+
+insertReport.run("123456789", "Not Evaluated", "Not Submitted");

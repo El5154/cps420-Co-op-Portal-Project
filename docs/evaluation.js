@@ -131,3 +131,6 @@ uploadBtn.addEventListener("click", async () => {
     }
 });
 
+backBtn.addEventListener("click", async () => {
+    window.location.href = "supervisor.html";
+});

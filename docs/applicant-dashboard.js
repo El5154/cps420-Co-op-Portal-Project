@@ -152,7 +152,7 @@ uploadBtn.addEventListener("click", async () => {
 
   try {
     const response = await fetch(`${BASE_URL}/uploadReport`, {
-      method: "POST",
+      method: "PATCH",
       credentials: "include",
       body: formData
     });

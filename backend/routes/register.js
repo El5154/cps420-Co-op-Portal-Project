@@ -34,9 +34,15 @@ router.post("/register", (req, res) => {
       VALUES (?, ?, ?)
     `);
 
+    const insertReport = db.prepare(`
+      INSERT INTO reports (studentID, evaluation_status, report_status)
+      VALUES (?, ?, ?)
+    `);
+
     const transaction = db.transaction(() => {
       insertApplicant.run(name, studentID, email);
       insertUser.run(studentID, password, "applicant");
+      insertReport.run(studentID, "Not Evaluated", "Not Submitted");
     });
 
     transaction();
