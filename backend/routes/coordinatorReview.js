@@ -1,11 +1,9 @@
-// routes/coordinatorReview.js
 const express = require("express");
 const router = express.Router();
 const db = require("../config/applicants");
-
 const requireCoordinator = require("../middleware/requireCoordinator");
 
-// GET /applicants - coordinator only
+// Get all applicants for coordinator dashboard
 router.get("/applicants", requireCoordinator, (req, res) => {
   const applicants = db.prepare(`
     SELECT
@@ -32,7 +30,7 @@ router.get("/applicants", requireCoordinator, (req, res) => {
   return res.status(200).json(applicants);
 });
 
-// PATCH /applicants/:id/status - set provisional status
+// Updates applicant provisional status
 router.patch("/applicants/:id/status", requireCoordinator, (req, res) => {
   const { id } = req.params;
   const { provisional_status } = req.body;
@@ -45,9 +43,10 @@ router.patch("/applicants/:id/status", requireCoordinator, (req, res) => {
     return res.status(400).json({ error: "Invalid status value" });
   }
 
-  const applicant = db.prepare(
-    "SELECT * FROM applicants WHERE id = ?"
-  ).get(id);
+  const applicant = db.prepare(`
+    SELECT * FROM applicants 
+    WHERE id = ?
+  `).get(id);
 
   if (!applicant) {
     return res.status(404).json({ error: "Applicant not found" });
@@ -59,22 +58,25 @@ router.patch("/applicants/:id/status", requireCoordinator, (req, res) => {
     });
   }
 
-  db.prepare(
-    "UPDATE applicants SET provisional_status = ? WHERE id = ?"
-  ).run(provisional_status, id);
+  db.prepare(`
+    UPDATE applicants 
+    SET provisional_status = ? 
+    WHERE id = ?
+  `).run(provisional_status, id);
 
   return res.status(200).json({
     message: "Applicant provisional status updated successfully"
   });
 });
 
-// PATCH /applicants/:id/finalize - finalize decision
+// Finalizes applicant decision based on provisional status
 router.patch("/applicants/:id/finalize", requireCoordinator, (req, res) => {
   const { id } = req.params;
 
-  const applicant = db.prepare(
-    "SELECT * FROM applicants WHERE id = ?"
-  ).get(id);
+  const applicant = db.prepare(`
+    SELECT * FROM applicants 
+    WHERE id = ?
+  `).get(id);
 
   if (!applicant) {
     return res.status(404).json({ error: "Applicant not found" });
@@ -92,29 +94,32 @@ router.patch("/applicants/:id/finalize", requireCoordinator, (req, res) => {
     });
   }
 
-  db.prepare(
-    "UPDATE applicants SET final_status = ? WHERE id = ?"
-  ).run(applicant.provisional_status, id);
+  db.prepare(`
+    UPDATE applicants 
+    SET final_status = ? WHERE id = ?
+  `).run(applicant.provisional_status, id);
 
   return res.status(200).json({
     message: "Applicant final status updated successfully"
   });
 });
 
+//Assigns supervisor to applicant
 router.patch("/applicants/:id/supervisor", requireCoordinator, (req, res) => {
   const { id } = req.params;
   const { supervisor } = req.body;
 
   if (!supervisor) {
-    return res.status(400).json({ error: "Supervisor is required"});
+    return res.status(400).json({ error: "Supervisor name is required" });
   }
 
-  const applicant = db.prepare(`
-    SELECT * FROM applicants WHERE id = ?
-  `).get(id);
+  const supervisorUser = db.prepare(`
+    SELECT * FROM users 
+    WHERE username = ?
+  `).get(supervisor);
 
-  if (!applicant) {
-    return res.status(400).json({ error: "Applicant not found"});
+  if (!supervisorUser) {
+    return res.status(400).json({ error: "Supervisor not found"});
   }
 
   db.prepare(`
@@ -125,9 +130,34 @@ router.patch("/applicants/:id/supervisor", requireCoordinator, (req, res) => {
   return res.status(200).json({ message: "Supervisor assigned successfully"});
 });
 
-// Back button route after report review
-router.post("/back", requireCoordinator, (req, res) => {
-  return res.status(200).json({ message: "Back to coordinator dashboard" });
+// Gets applicants who missed report submission deadlines
+router.get("/applicants/missed-deadlines", requireCoordinator, (req, res) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const missedApplicants = db.prepare(`
+    SELECT 
+      a.id, 
+      a.name, 
+      a.studentID, 
+      a.email, 
+      a.provisional_status, 
+      a.final_status, 
+      a.supervisor, 
+      COALESCE(r.report_status, 'Not Submitted') AS report_status, 
+      COALESCE(r.evaluation_status, 'Not Evaluated') AS evaluation_status, 
+      r.deadline, 
+      r.report_filename, 
+      r.report_path, 
+      r.report_uploaded, 
+      r.report_uploaded_at, 
+      r.evaluation_filename, 
+      r.evaluation_path
+    FROM applicants a
+    JOIN reports r ON a.studentID = r.studentID
+    WHERE r.deadline < ? AND r.report_uploaded = 0
+  `).all(today);
+
+  return res.status(200).json(missedApplicants);
 });
 
 module.exports = router;

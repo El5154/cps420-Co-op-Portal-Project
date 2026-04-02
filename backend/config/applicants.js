@@ -17,7 +17,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     provisional_status TEXT DEFAULT 'Pending',
     final_status TEXT DEFAULT 'Pending',
-    supervisor TEXT
+    supervisor TEXT DEFAULT NULL
   );
 
   CREATE TABLE IF NOT EXISTS reports (
@@ -30,8 +30,7 @@ db.exec(`
     report_uploaded INTEGER DEFAULT 0,
     report_uploaded_at TEXT,
     evaluation_filename TEXT,
-    evaluation_path TEXT,
-    evaluation_type TEXT
+    evaluation_path TEXT
   );
 
   CREATE TABLE IF NOT EXISTS users (

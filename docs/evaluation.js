@@ -1,5 +1,4 @@
 const message = document.getElementById("message");
-const uploadMessage = document.getElementById("uploadMessage");
 const submitMessage = document.getElementById("submitMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 const uploadBtn = document.getElementById("uploadBtn");
@@ -26,7 +25,7 @@ async function loadEvaluation() {
     showMessage("", "");
 
     try {
-        const response = await fetch(`${BASE_URL}/evaluation`, {
+        const response = await fetch(`${BASE_URL}/supervisor/students`, {
             method: "GET",
             credentials: "include"
         });
@@ -45,24 +44,25 @@ async function loadEvaluation() {
 
         const evaluation = await response.json();
 
-        renderEvaluation(evaluation);
+        renderEvaluation(evaluation[0]);
     } catch (error) {
-        showMessage("Could not connect to the server.", "error");
+        showMessage(error, "error");
     }
 }
 
 function renderEvaluation(evaluation) {
-    studentNameSpan.textContent = evaluation.student.name;
-    studentIdSpan.textContent = evaluation.student.studentID;
-    studentEmailSpan.textContent = evaluation.student.email;
-    evaluationStatusSpan.textContent = evaluation.evaluation_status ?? "Not Evaluated";
-    supervisorNameSpan.textContent = evaluation.supervisor.name;
-    supervisorEmailSpan.textContent = evaluation.supervisor.email;
-    performanceSpan.textContent = evaluation.overall_performance ?? "N/A";
+    studentNameSpan.textContent = evaluation.name ?? "-";
+    studentIdSpan.textContent = evaluation.studentID ?? "-";
+    studentEmailSpan.textContent = evaluation.email ?? "-";
+    evaluationStatusSpan.textContent = 
+        evaluation.evaluation_status === "Not Evaluated"
+            ? "Not Evaluated"
+            : "Evaluated";
 }
 
 submitBtn.addEventListener("click", async () => {
   const performance = performanceSpan.value;
+  const studentID = studentIdSpan.textContent.trim();
 
   if (!performance) {
     showMessage("Please select an overall performance rating before uploading.", "error");
@@ -71,12 +71,12 @@ submitBtn.addEventListener("click", async () => {
 
   try {
     const response = await fetch(`${BASE_URL}/uploadEvaluation`, {
-      method: "POST",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ overallPerformance: performance })
+      body: JSON.stringify({ studentID: studentID, overallPerformance: performance })
     });
 
     const data = await response.json();
@@ -94,6 +94,7 @@ submitBtn.addEventListener("click", async () => {
 
 uploadBtn.addEventListener("click", async () => {
     const file = evaluationFileSpan.files[0];
+    const studentID = studentIdSpan.textContent.trim();
 
     if (!file) {
         return showMessage("Please select a file to upload.", "error");
@@ -111,8 +112,8 @@ uploadBtn.addEventListener("click", async () => {
     formData.append("evaluationFile", file);
 
     try {
-        const reponse = await fetch(`${BASE_URL}/uploadEvaluationFile`, {
-            method: "POST",
+        const response = await fetch(`${BASE_URL}/uploadEvaluationFile/${studentID}`, {
+            method: "PATCH",
             credentials: "include",
             body: formData
         });
@@ -123,10 +124,14 @@ uploadBtn.addEventListener("click", async () => {
             return showMessage(data.error || "Failed to upload evaluation file.", "error");
         }
 
-        showUploadMessage(data.message || "Evaluation file uploaded successfully.", "success");
-        evaluationFileInput.value = "";
+        showMessage(data.message || "Evaluation file uploaded successfully.", "success");
     } catch (error) {
-        showMessage("Could not connect to the server.", "error");
+        showMessage(error, "error");
     }
 });
 
+backBtn.addEventListener("click", async () => {
+    window.location.href = "supervisor.html";
+});
+
+loadEvaluation();

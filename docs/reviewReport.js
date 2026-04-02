@@ -5,6 +5,8 @@ const backBtn = document.getElementById("backBtn");
 const reportDetailsTableBody = document.getElementById("reportDetailsTableBody");
 const deadlineInput = document.getElementById("deadline");
 const setDeadlineBtn = document.getElementById("setDeadline");
+const supervisorInput = document.getElementById("supervisor");
+const setSupervisorBtn = document.getElementById("setSupervisor");
 const applicantId = new URLSearchParams(window.location.search).get("applicantId");
 
 function showMessage(text, type) {
@@ -43,7 +45,9 @@ function renderReportRow({
   reportFilename,
   formattedSubmittedAt,
   formattedDeadline,
-  evaluationStatus
+  evaluationStatus,
+  evaluationFile,
+  supervisorCell
 }) {
   const row = document.createElement("tr");
 
@@ -51,6 +55,13 @@ function renderReportRow({
     reportStatus !== "Not Submitted" && reportFilename
       ? `<a href="${BASE_URL}/reports/${reportFilename}" target="_blank" rel="noopener">${reportFilename}</a>`
       : "-";
+
+  const evaluationnameCell =
+    evaluationStatus !== "Not Evaluated" && evaluationFile
+      ? `<a href="${BASE_URL}/evaluations/${evaluationFile}" target="_blank" rel="noopener">${evaluationFile}</a>`
+      : evaluationStatus !== "Not Evaluated"
+        ? evaluationStatus
+        : "-";
 
   const submittedAtCell =
     reportStatus !== "Not Submitted" && reportFilename
@@ -62,7 +73,8 @@ function renderReportRow({
     <td>${filenameCell}</td>
     <td>${submittedAtCell}</td>
     <td>${formattedDeadline}</td>
-    <td>${evaluationStatus}</td>
+    <td>${evaluationnameCell}</td>
+    <td>${supervisorCell}</td>
   `;
 
   reportDetailsTableBody.appendChild(row);
@@ -94,14 +106,19 @@ async function loadReviewReport() {
       const reportStatus = data.report_status || "Not Submitted";
       const evaluationStatus = data.evaluation_status || "Not Evaluated";
       const reportFilename = data.report_filename || null;
+      const evaluationFile = data.evaluation_filename || null;
+      const supervisorCell = data.supervisor || "-";
 
       renderReportRow({
         reportStatus,
         reportFilename,
         formattedSubmittedAt,
         formattedDeadline,
-        evaluationStatus
+        evaluationStatus,
+        evaluationFile,
+        supervisorCell
       });
+
     } else {
       showMessage(data.error || "Failed to load report review.", "error");
     }
@@ -111,21 +128,7 @@ async function loadReviewReport() {
 }
 
 backBtn.addEventListener("click", async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/back`, {
-      method: "POST",
-      credentials: "include"
-    });
-
-    if (response.ok) {
-      window.location.href = "coordinator.html";
-    } else {
-      const data = await response.json();
-      showMessage(data.error || "Failed to go back.", "error");
-    }
-  } catch (error) {
-    showMessage("Could not connect to the server.", "error");
-  }
+    window.location.href = "coordinator.html";
 });
 
 setDeadlineBtn.addEventListener("click", async () => {
@@ -162,5 +165,36 @@ setDeadlineBtn.addEventListener("click", async () => {
     showMessage("Deadline failed to set", "error");
   }
 });
+
+setSupervisorBtn.addEventListener("click", async () => {
+  const supervisorInput = supervisor.value.trim();
+
+  if (!supervisorInput) {
+    return showMessage("Please input a supervisor name", "error");
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/applicants/${applicantId}/supervisor`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({ supervisor: supervisorInput })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return showMessage(data.error || "Failed to set supervisor", "error");
+    }
+
+    showMessage("Supervisor set successfully", "success");
+    supervisor.value = "";
+    loadReviewReport();
+  } catch (error) {
+    showMessage("Could not connect to the server.", "error");
+  }
+})
 
 loadReviewReport();

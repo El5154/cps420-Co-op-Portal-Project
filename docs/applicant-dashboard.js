@@ -8,11 +8,15 @@ const reportFile = document.getElementById("reportFile");
 const uploadMessage = document.getElementById("uploadMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 const reportsTableBody = document.getElementById("reportsTableBody");
+const templateLink = document.getElementById("templateLink");
 
 function showMessage(text, type) {
   message.textContent = text;
   message.className = "message";
-  if (type) message.classList.add(type);
+  
+  if (type) {
+    message.classList.add(type);
+  }
 }
 
 function formatDateTime(value) {
@@ -151,7 +155,7 @@ uploadBtn.addEventListener("click", async () => {
 
   try {
     const response = await fetch(`${BASE_URL}/uploadReport`, {
-      method: "POST",
+      method: "PATCH",
       credentials: "include",
       body: formData
     });

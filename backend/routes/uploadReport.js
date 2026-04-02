@@ -27,7 +27,7 @@ const upload = multer({
   }
 }).single("report");
 
-router.post("/uploadReport", requireAuth, requireEligibleForReportUpload, (req, res) => {
+router.patch("/uploadReport", requireAuth, requireEligibleForReportUpload, (req, res) => {
   if (req.session.user.role !== "applicant") {
     return res.status(403).json({ error: "Forbidden" });
   }

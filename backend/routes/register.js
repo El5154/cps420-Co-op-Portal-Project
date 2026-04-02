@@ -34,9 +34,15 @@ router.post("/register", (req, res) => {
       VALUES (?, ?, ?)
     `);
 
+    const insertReport = db.prepare(`
+      INSERT INTO reports (studentID, evaluation_status, report_status)
+      VALUES (?, ?, ?)
+    `);
+
     const transaction = db.transaction(() => {
       insertApplicant.run(name, studentID, email);
       insertUser.run(studentID, password, "applicant");
+      insertReport.run(studentID, "Not Evaluated", "Not Submitted");
     });
 
     transaction();
@@ -52,6 +58,38 @@ router.post("/register", (req, res) => {
       });
     }
 
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/registerSupervisor", (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters long" });
+  }
+
+  try {
+    const insertUser = db.prepare(`
+      INSER INTO users (username, password, role)
+      VALUES (?, ?, ?)
+    `);
+
+    insertUser.run(username, password, "supervisor");
+
+    return res.status(201).json({
+      message: "Supervisor registered successfully"
+    });
+  } catch (error) {
+    if (error.message.includes("UNIQUE constraint failed")) {
+      return res.status(400).json({
+        error: "Username already exists"
+      });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 });
