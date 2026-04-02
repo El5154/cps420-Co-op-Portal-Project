@@ -3,6 +3,10 @@ const router = express.Router();
 const requireAuth = require("../middleware/requireAuth");
 const requireCoordinator = require("../middleware/requireCoordinator");
 const db = require("../config/applicants");
+const path = require("path");
+
+const reportUploadDir = path.join(__dirname, "../uploads/reports");
+const evaluationUploadDir = path.join(__dirname, "../uploads/evaluations");
 
 router.get("/applicants/:id/review", requireAuth, requireCoordinator, async (req, res) => {
     const applicantId = req.params.id;
@@ -20,24 +24,39 @@ router.get("/applicants/:id/review", requireAuth, requireCoordinator, async (req
         studentID: applicant.studentID,
         report_status: reports ? reports.report_status : null,
         evaluation_status: reports ? reports.evaluation_status : null,
+        evaluation_filename: reports ? reports.evaluation_filename : null,
         report_filename: reports ? reports.report_filename : null,
         report_uploaded_at: reports ? reports.report_uploaded_at : null,
         report_url: reports && reports.report_filename ? `/reports/${reports.report_filename}` : null,
-        deadline: reports ? reports.deadline : null
+        deadline: reports ? reports.deadline : null,
+        supervisor: applicant.supervisor || null
     });
 });
-
-const path = require("path");
-const uploadDir = path.join(__dirname, "../uploads/reports");
 
 router.get("/reports/:file", requireAuth, (req, res) => {
   const file = req.params.file;
   if (!file.endsWith("_report.pdf")) {
     return res.status(400).send("Invalid file");
   }
-  const filePath = path.join(uploadDir, file);
+  const filePath = path.join(reportUploadDir, file);
   res.sendFile(filePath, err => {
     if (err) res.status(404).send("Not found");
+  });
+});
+
+router.get("/evaluations/:file", requireAuth, (req, res) => {
+  const file = req.params.file;
+
+  if (!file.endsWith("_evaluation.pdf")) {
+    return res.status(400).send("Invalid file");
+  }
+
+  const filePath = path.join(evaluationUploadDir, file);
+
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      res.status(404).send("Not found");
+    }
   });
 });
 

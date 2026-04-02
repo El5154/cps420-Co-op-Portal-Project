@@ -17,7 +17,7 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     provisional_status TEXT DEFAULT 'Pending',
     final_status TEXT DEFAULT 'Pending',
-    supervisor TEXT
+    supervisor TEXT DEFAULT NULL
   );
 
   CREATE TABLE IF NOT EXISTS reports (

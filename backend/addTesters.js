@@ -10,8 +10,8 @@ const insertUser = db.prepare(`
 `);
 
 const insertApplicant = db.prepare(`
-  INSERT INTO applicants (name, studentID, email, provisional_status, final_status, supervisor)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO applicants (name, studentID, email, provisional_status, final_status)
+  VALUES (?, ?, ?, ?, ?)
 `);
 
 const insertReport = db.prepare(`
@@ -32,8 +32,7 @@ insertApplicant.run(
   "123456789",
   "student@torontomu.ca",
   "Pending",
-  "Pending",
-  supervisorUser.id
+  "Pending"
 );
 
 insertReport.run("123456789", "Not Evaluated", "Not Submitted");

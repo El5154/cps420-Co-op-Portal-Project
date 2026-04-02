@@ -3,6 +3,7 @@ const message = document.getElementById("message");
 const logoutBtn = document.getElementById("logoutBtn");
 const showAllBtn = document.getElementById("showAllBtn");
 const showLateBtn = document.getElementById("showLateBtn");
+let currentView = `${BASE_URL}/applicants`;
 
 function showMessage(text, type) {
   message.textContent = text;
@@ -16,7 +17,7 @@ async function loadApplicants() {
   showMessage("", "");
 
   try {
-    const response = await fetch(`${BASE_URL}/applicants`, {
+    const response = await fetch(currentView, {
       method: "GET",
       credentials: "include"
     });
@@ -50,9 +51,7 @@ function renderApplicants(applicants) {
     const row = document.createElement("tr");
 
     const reportStatus = applicant.report_status ?? "Not Submitted";
-    const evaluationStatus = applicant.evaluation_status ?? "Not Evaluated";
     const finalized = applicant.final_status !== "Pending";
-    const submissionDone = reportStatus !== "Not Submitted";
 
     row.innerHTML = `
       <td>${applicant.name}</td>
@@ -77,7 +76,7 @@ function renderApplicants(applicants) {
             Finalize
           </button>
 
-          <button onclick="window.location.href = 'reviewReport.html?applicantId=${applicant.id}'" ${!submissionDone ? "disabled" : ""}>
+          <button onclick="window.location.href = 'reviewReport.html?applicantId=${applicant.id}'" ${!finalized ? "disabled" : ""}>
             Review Reports
           </button>
         </div>
@@ -111,7 +110,7 @@ async function updateStatus(applicantId) {
 
     if (response.ok) {
       showMessage(data.message || "Status updated successfully.", "success");
-      loadApplicants();
+      loadApplicants(currentView);
     } else {
       showMessage(data.error || "Failed to update status.", "error");
     }
@@ -131,47 +130,9 @@ async function finalizeDecision(applicantId) {
 
     if (response.ok) {
       showMessage(data.message || "Decision finalized successfully.", "success");
-      loadApplicants();
+      loadApplicants(currentView);
     } else {
       showMessage(data.error || "Failed to finalize decision.", "error");
-    }
-  } catch (error) {
-    showMessage("Could not connect to the server.", "error");
-  }
-}
-
-async function createAccount(applicantId) {
-  const passwordInput = document.getElementById(`password-${applicantId}`);
-  const password = passwordInput.value.trim();
-
-  if (!password) {
-    showMessage("Please enter a password for the new account.", "error");
-    return;
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/applicants/${applicantId}/create-account`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      credentials: "include",
-      body: JSON.stringify({ password })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      showMessage(
-        data.message
-          ? `${data.message} Username: ${data.username}`
-          : "Account created successfully.",
-        "success"
-      );
-      passwordInput.value = "";
-      loadApplicants();
-    } else {
-      showMessage(data.error || "Failed to create account.", "error");
     }
   } catch (error) {
     showMessage("Could not connect to the server.", "error");
@@ -203,12 +164,14 @@ function setActiveButton(activeBtn) {
 
 showAllBtn.addEventListener("click", () => {
   setActiveButton(showAllBtn);
-  loadApplicants(`${BASE_URL}/applicants`);
+  currentView = `${BASE_URL}/applicants`;
+  loadApplicants();
 });
 
 showLateBtn.addEventListener("click", () => {
   setActiveButton(showLateBtn);
-  loadApplicants(`${BASE_URL}/applicants/missed-deadlines`);
+  currentView = `${BASE_URL}/applicants/missed-deadlines`;
+  loadApplicants();
 });
 
-loadApplicants();
+loadApplicants(`${BASE_URL}/applicants`);

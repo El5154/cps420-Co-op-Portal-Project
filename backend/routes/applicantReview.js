@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require("../config/applicants");
 const requireAuth = require("../middleware/requireAuth");
 
+// Get applicant dashboard informations
 router.get("/applicant/dashboard", requireAuth, (req, res) => {
   if (req.session.user.role !== "applicant") {
     return res.status(403).json({ error: "Forbidden" });

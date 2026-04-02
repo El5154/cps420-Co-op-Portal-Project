@@ -35,7 +35,10 @@ async function loadSupervisedStudents() {
     }
 
     const students = await response.json();
-    renderStudents(students);
+
+    students.forEach(student => {
+      renderStudents(students);
+    })
   } catch (error) {
     showMessage("Could not connect to the server.", "error");
   }

@@ -114,6 +114,11 @@ button:hover {
   transform: translateY(-1px);
 }
 
+#setSupervisor {
+  margin-top: 10px;
+  display: block;
+}
+
 #backBtn {
   display: block;
   margin: 0 auto;
