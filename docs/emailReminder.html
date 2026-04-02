@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Reminder</title>
+    <link rel="stylesheet" href="emialReminder.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Email Reminder</h1>
+        <button id="logoutb">Logout</button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <section>
+        <h2>Send Reminder</h2>
+
+        <label for="recpt">Recipient</label>
+        <select id="recpt"> <option value=""> Loading.....</option>></select>
+
+        <label for="sub">Subject</label>
+        <input type="text" id="sub" placeholder="Subject:"/>
+        <label for="body">Message</label>
+        <textarea id="body" rows="20" placeholder="write your message"></textarea>
+        <button id="sender">Send Reminder Email</button>
+    </section>
+    <button id="backbutton">Back to Dashbourd</button>
+    </div>
+
+    
+
+
+
+
+    <script src="config.js"></script>
+    <script src="logout.js"></script>
+    <script src="emailReminder.js"></script>
+</body>
+</html>
